@@ -13,25 +13,31 @@ compromise. [`BRIEF.md`](BRIEF.md) records the decisions this rests on.
 ## What works today
 
 Phase 0 — everything the model plan needs measured before a model is worth
-training. Three commands, each writing its numbers to `data/`:
+training, plus the retrieval it feeds. Each command writes its numbers to
+`data/`:
 
 ```bash
-python -m paRY.corpus.collect      # gather the corpus
-python -m paRY.verify.oracle --blocks   # grade the documented examples
+python -m paRY.corpus.collect             # gather the corpus
+python -m paRY.verify.oracle --blocks     # grade the documented examples
 python -m paRY.tokenizer.train && python -m paRY.tokenizer.measure
+python -m paRY.index.build                # build the retrieval index
+python -m paRY.index.search "how do I read a file"
 ```
+
+Where this is going — four surfaces over one core, and which model each of them
+needs — is [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ### The corpus is small, and now exactly known
 
 | | files | size | tokens |
 |---|---:|---:|---:|
-| eTamil source (`.qmz`) | 73 | 432 kB | 66,848 |
-| Documentation (`.md`, both languages) | 55 | 665 kB | 140,213 |
-| eTamil blocks inside the documentation | 149 | 34 kB | 6,936 |
-| **Everything** | **128** | **1,096 kB** | **207,061** |
+| eTamil source (`.qmz`) | 77 | 438 kB | 68,163 |
+| Documentation (`.md`, both languages) | 55 | 672 kB | 141,369 |
+| eTamil blocks inside the documentation | 151 | 34 kB | 6,949 |
+| **Everything** | **132** | **1,110 kB** | **209,532** |
 
 The brief estimated 185k tokens of source and called that 500–5,000x too little
-to fine-tune on. Measured under paRY's own tokenizer it is **66,848** — the
+to fine-tune on. Measured under paRY's own tokenizer it is **68,163** — the
 estimate was made with a general tokenizer, which spends three times as many
 tokens on the same Tamil. The conclusion does not change; it gets sharper.
 Generating verified eTamil is not one option among several, it is the only way
@@ -43,7 +49,7 @@ there is a corpus at all.
 candidate can be judged without executing code that would write a file or open
 a socket. Pointed at the documentation:
 
-**126 of 149 documented eTamil examples compile (85%).**
+**128 of 151 documented eTamil examples compile (85%).**
 
 The 23 that do not are mostly deliberate fragments — a `.field` continuation, a
 line of pseudo-code — and are worth knowing about either way, because a
@@ -65,15 +71,15 @@ needs a batch mode inside the compiler.
 
 | | chars/token | bytes/token |
 |---|---:|---:|
-| eTamil source | 4.07 | 6.61 |
-| Documentation | 3.79 | 4.85 |
+| eTamil source | 4.06 | 6.58 |
+| Documentation | 3.79 | 4.87 |
 
 Bytes per token is the number that matters for Tamil. An untrained byte-level
 tokenizer spends about one token per byte, and Tamil costs three bytes a
 character — so this is roughly **6.6x** less context spent on the same program.
 
-Every name the compiler accepts is a single token: **523 keyword spellings,
-177 builtin spellings, 253 nUlakam functions — 100% of each.** A keyword split
+Every name the compiler accepts is a single token: **524 keyword spellings,
+186 builtin spellings, 253 nUlakam functions — 100% of each.** A keyword split
 across four tokens is four chances to emit a keyword that does not exist, which
 is the failure mode that would most damage trust in a new language. The
 romanized and English spellings are in there too, primed from the compiler's
@@ -90,28 +96,56 @@ a hole with text on both sides, and adding those tokens later means retraining.
    because Tamil vowel signs and the pulli are combining marks and `\p{L}` does
    not match them. BPE cannot merge across those boundaries, so no amount of
    training recovers the word. The first tokenizer trained here had **zero** of
-   523 keyword spellings as a token. Fixing the splitter cut the corpus from
+   524 keyword spellings as a token. Fixing the splitter cut the corpus from
    389k tokens to 204k — the same text, 1.9x cheaper.
 2. Priming the vocabulary on two lines (`name\n name\n`) taught the
    space-prefixed form nothing, because a newline followed by a space is one
    whitespace run to the splitter. On one line it works, and coverage went from
    42% to 100%.
 
+### Retrieval
+
+1,721 chunks in one SQLite FTS5 file — 518 symbols, 975 documentation sections,
+151 documented examples with their compile verdict attached, 77 source files.
+No server, no dependency, and it answers in milliseconds.
+
+A symbol chunk is the highest-precision thing in there: "what does நீளம் do"
+is answered from `interpreter.rs`, not from a paragraph that mentions it. An
+example that does not compile is still indexed, and marked — it is useful
+context and must never be handed back as an answer.
+
+**The tokenizer trap again, in a different library.** SQLite's default
+tokenizer takes only letters and numbers as part of a word, and Tamil vowel
+signs are combining marks — so `செயல் வருவாய்` indexes as `ச`, `யல`, `வ`,
+`வர`, and every Tamil word collides with every other one sharing a bare
+consonant. Naming the mark categories fixes it:
+
+```sql
+tokenize="unicode61 categories 'L* N* Mn Mc'"
+```
+
+Two libraries, same mistake. It is worth assuming any text tool is wrong about
+Tamil until it has been shown otherwise.
+
 ## Next
 
-1. **The eval set, before any training.** 200 held-out completion cases from
-   real `.qmz`, scored on exact match, edit distance, does it parse, does it
-   pass its test. The oracle here is most of the scoring; what is missing is
-   the held-out split and the harness.
-2. **Corpus generation.** Fuzz the grammar, enumerate nUlakam into usage sites,
-   expand the documented blocks — and verify every sample by compiling it.
-   Needs the compiler batch mode above to be affordable.
-3. **Phase A completion model.** ~45M parameters, Llama-shaped so `llama.cpp`
-   serves it. Not before 1 and 2.
+The plan is four surfaces — web and Android chat, a VS Code extension, a
+desktop IDE, an Android IDE — over one core, with the chat app first and
+answers that need no model yet. [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+has the reasoning, including which model each surface actually needs and why
+that does not match the order they are listed in.
 
-Retrieval and compiler-driven answers — the model-free half of the assistant,
-which answers most real questions today — are a parallel track and share this
-corpus.
+Immediately:
+
+1. **The answer engine** — rules-based intent routing over retrieval and
+   compiler-driven answers, behind `/ask`.
+2. **The server**, then the web chat client. Same protocol the other three
+   surfaces will use.
+3. **The eval set**, before any training: 200 held-out completion cases scored
+   on exact match, edit distance, does it parse, does it pass its test.
+4. **Corpus generation**, verified by compiling every sample — which needs a
+   batch check mode in the compiler to be affordable.
+5. **Phase A**, and surfaces 2 and 3 become genuinely generative.
 
 ## Layout
 
@@ -121,6 +155,8 @@ paRY/lexicon.py        keywords, builtins and nUlakam, read out of the compiler
 paRY/corpus/collect.py the corpus, with provenance and content hashes
 paRY/verify/oracle.py  the compiler as a judge
 paRY/tokenizer/        training and measurement
+paRY/index/            the FTS5 retrieval index, and asking it questions
+docs/ARCHITECTURE.md   four surfaces, one core, and the build order
 data/                  everything generated — reproducible, and not committed
 ```
 

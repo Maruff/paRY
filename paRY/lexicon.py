@@ -66,11 +66,21 @@ def _load_generator() -> ModuleType:
 @lru_cache(maxsize=1)
 def load() -> Lexicon:
     generator = _load_generator()
-    return Lexicon(
-        keywords=generator.read_tokens(),
-        builtins=generator.read_builtins(),
-        stdlib=generator.read_stdlib(),
-    )
+    try:
+        keywords = generator.read_tokens()
+        builtins = generator.read_builtins()
+        stdlib = generator.read_stdlib()
+    except SystemExit as failure:
+        raise SystemExit(
+            f"{failure}\n\n"
+            "paRY reads the language out of the eTamil working tree, so a tree that is "
+            "mid-edit stops it. `read_tokens` wants `#[regex(\"…\")] Variant,` on one "
+            "line; rustfmt puts the attribute on its own line and the generator then "
+            "finds nothing — which fails eTamil's own CI gate too, not just this. "
+            "Check `git -C <eTamil> status` before assuming paRY is at fault."
+        ) from failure
+
+    return Lexicon(keywords=keywords, builtins=builtins, stdlib=stdlib)
 
 
 def main() -> int:
