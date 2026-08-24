@@ -35,6 +35,7 @@ from typing import Literal
 
 from fastapi import Body, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .. import __version__, config
@@ -45,6 +46,10 @@ from ..verify import oracle
 # A program bigger than this is not a question about a program. The compiler
 # would cope; the point is to bound what one request can cost.
 MAX_SOURCE_BYTES = 256 * 1024
+
+# The web client, served by the server it talks to, so `python -m paRY.serve` is
+# the whole install. Mounted last: it answers everything the API did not claim.
+WEB_ROOT = config.REPO_ROOT / "web"
 
 
 class AskRequest(BaseModel):
@@ -218,6 +223,9 @@ def create_app(*, origins: tuple[str, ...] = ("http://localhost:5173",)) -> Fast
             detail="completion needs the Phase A model, which is not trained yet — "
                    "use /ask for questions and /diagnose for errors",
         )
+
+    if WEB_ROOT.is_dir():
+        app.mount("/", StaticFiles(directory=WEB_ROOT, html=True), name="web")
 
     return app
 

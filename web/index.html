@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>paRY — பறை</title>
+<link rel="stylesheet" href="./style.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span class="drum" aria-hidden="true">🪘</span>
+    <div>
+      <h1>பறை <span class="latin">paRY</span></h1>
+      <p class="tagline">An eTamil assistant. Nothing here calls a hosted model.</p>
+    </div>
+  </div>
+  <div id="health" class="health" role="status" aria-live="polite">connecting…</div>
+</header>
+
+<main id="transcript" aria-live="polite">
+  <section class="message assistant welcome">
+    <div class="body">
+      <p>Ask about a keyword, a builtin, or how to do something — in Tamil or English.
+         Paste code below and paRY will compile it before saying anything about it.</p>
+      <p class="examples">
+        <button class="chip" type="button" data-ask="நீளம்">நீளம்</button>
+        <button class="chip" type="button" data-ask="how do I write a row to a CSV file">write a CSV row</button>
+        <button class="chip" type="button" data-ask="வரி">வரி</button>
+        <button class="chip" type="button" data-ask="route with a path parameter">routes</button>
+      </p>
+    </div>
+  </section>
+</main>
+
+<form id="composer" autocomplete="off">
+  <div class="row">
+    <textarea id="question" rows="1" placeholder="Ask paRY…  /  paRY இடம் கேளுங்கள்…"
+              aria-label="Your question" required></textarea>
+    <button id="ask" type="submit">Ask</button>
+  </div>
+  <div class="row controls">
+    <button type="button" id="toggle-source" aria-expanded="false" aria-controls="source">
+      + code
+    </button>
+    <button type="button" id="check" hidden>Check it compiles</button>
+    <span class="spacer"></span>
+    <label for="locale">Answer in</label>
+    <select id="locale">
+      <option value="">match the question</option>
+      <option value="en">English</option>
+      <option value="ta">தமிழ்</option>
+    </select>
+  </div>
+  <textarea id="source" rows="6" hidden spellcheck="false"
+            placeholder="அச்சு &quot;வணக்கம்&quot;;" aria-label="eTamil source"></textarea>
+</form>
+
+<script src="./app.js" type="module"></script>
+</body>
+</html>

@@ -23,7 +23,7 @@ python -m paRY.tokenizer.train && python -m paRY.tokenizer.measure
 python -m paRY.index.build                # build the retrieval index
 python -m paRY.index.search "how do I read a file"
 python -m paRY.answer "how do I write a row to a CSV file"
-python -m paRY.serve                      # the HTTP API on 127.0.0.1:8900
+python -m paRY.serve                      # API and web client on :8900
 ```
 
 Where this is going — four surfaces over one core, and which model each of them
@@ -195,6 +195,29 @@ The default bind is loopback. This server compiles what it is sent, so it
 belongs inside the network that owns the code, behind that network's own
 authentication — `--host 0.0.0.0` is a decision you have to type.
 
+### The web client
+
+`python -m paRY.serve`, then open <http://127.0.0.1:8900>. That is the whole
+install — the server serves the client it talks to.
+
+No framework, no bundler, no npm, no web fonts. That is not minimalism for its
+own sake: an institution running this inside its own network should not need a
+route out to install a chat window, and a build step is one more thing that has
+to be allowed through. Three files in `web/`.
+
+- Ask in Tamil or English; a Tamil question comes back with a Tamil frame
+- Paste code and it is compiled before anything is said about it
+- Every answer shows its intent, its confidence, and where it came from
+- Code carries the server's ✓ compiles verdict, never the client's guess
+- The header says `no model — compiler and corpus only`, because a user should
+  never have to guess whether a model wrote what they are reading
+
+Two things it taught, both fixed: a sticky composer hides the newest answer the
+moment the code pane opens, so the transcript is its own scroll region rather
+than the page scrolling underneath; and `scrollIntoView({behavior: "smooth"})`
+silently does nothing in some embedded webviews, which leaves a chat that does
+not follow its own output.
+
 ## Next
 
 The plan is four surfaces — web and Android chat, a VS Code extension, a
@@ -205,8 +228,7 @@ that does not match the order they are listed in.
 
 Immediately:
 
-1. **The web chat client** — surface 1, end to end, on the protocol above.
-2. **Better code for a how-to.** Three questions in six currently get a
+1. **Better code for a how-to.** Three questions in six currently get a
    citation and no snippet, because the example that answers them is a whole
    file longer than 40 lines. Extracting the one function that answers the
    question, and compiling the extract, is what closes that.
@@ -227,6 +249,7 @@ paRY/tokenizer/        training and measurement
 paRY/index/            the FTS5 retrieval index, and asking it questions
 paRY/answer/           intent routing, and the answer itself
 paRY/serve/            the HTTP protocol every client shares
+web/                   the chat client, served by that server
 docs/ARCHITECTURE.md   four surfaces, one core, and the build order
 data/                  everything generated — reproducible, and not committed
 ```

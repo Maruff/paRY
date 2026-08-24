@@ -99,3 +99,18 @@ def test_an_oversized_program_is_refused(client):
 
 def test_an_empty_question_is_a_validation_error(client):
     assert client.post("/ask", json={"question": ""}).status_code == 422
+
+
+def test_the_web_client_is_served_by_the_server_it_talks_to(client):
+    """`python -m paRY.serve` is the whole install — no npm, no second host."""
+    page = client.get("/")
+    assert page.status_code == 200
+    assert "பறை" in page.text
+    assert client.get("/app.js").status_code == 200
+    assert client.get("/style.css").status_code == 200
+
+
+def test_mounting_the_client_did_not_shadow_the_api(client):
+    """The static mount is last and catches only what the API did not claim."""
+    assert client.get("/health").status_code == 200
+    assert client.get("/nope.js").status_code == 404
