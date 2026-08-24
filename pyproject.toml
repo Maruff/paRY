@@ -15,7 +15,14 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["paRY", "paRY.corpus", "paRY.tokenizer", "paRY.verify"]
+packages = [
+    "paRY",
+    "paRY.answer",
+    "paRY.corpus",
+    "paRY.index",
+    "paRY.tokenizer",
+    "paRY.verify",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

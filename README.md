@@ -22,6 +22,7 @@ python -m paRY.verify.oracle --blocks     # grade the documented examples
 python -m paRY.tokenizer.train && python -m paRY.tokenizer.measure
 python -m paRY.index.build                # build the retrieval index
 python -m paRY.index.search "how do I read a file"
+python -m paRY.answer "how do I write a row to a CSV file"
 ```
 
 Where this is going — four surfaces over one core, and which model each of them
@@ -127,6 +128,39 @@ tokenize="unicode61 categories 'L* N* Mn Mc'"
 Two libraries, same mistake. It is worth assuming any text tool is wrong about
 Tamil until it has been shown otherwise.
 
+### Answers, with no model
+
+`python -m paRY.answer "…"` routes a question by rules to whichever source can
+answer it exactly, and falls back to retrieval:
+
+| Intent | When | Answered from |
+|---|---|---|
+| `diagnose` | there is source, and it does not compile | the compiler, bilingually, with line and column |
+| `symbol` | the question names a keyword, builtin or nUlakam function | the compiler's own tables |
+| `explain` | there is source and the question asks what it does | every name it uses |
+| `howto` | everything else | documentation and verified examples |
+
+A Tamil question is answered with a Tamil frame. Three known mistakes are
+recognised by name rather than only quoted — the one the brief singles out as
+easiest to make gets the real fix, not just the parse error:
+
+```
+$ python -m paRY.answer "why does this fail" --source broken.qmz
+### Why this does not compile
+- ✗ வரி 1, நெடுவரிசை 6: '=' எதிர்பார்க்கப்பட்டது, 'x' கிடைத்தது
+  (line 1, column 6: expected '=', found 'x')
+
+### The fix
+- `மாறி` and `நிலை` are tokens, but they are not statement prefixes.
+  eTamil assigns with a bare name: `x = 5;`, not `மாறி x = 5;`.
+```
+
+**No answer carries code that has not been compiled.** An example is quoted
+only when the oracle has said it compiles, and one longer than 40 lines is
+cited rather than pasted, because half a program does not compile. When nothing
+answers, paRY says so instead of composing something plausible — that invariant
+is a test, run over every intent.
+
 ## Next
 
 The plan is four surfaces — web and Android chat, a VS Code extension, a
@@ -137,10 +171,12 @@ that does not match the order they are listed in.
 
 Immediately:
 
-1. **The answer engine** — rules-based intent routing over retrieval and
-   compiler-driven answers, behind `/ask`.
-2. **The server**, then the web chat client. Same protocol the other three
-   surfaces will use.
+1. **The server**, then the web chat client — surface 1, end to end, with the
+   same protocol the other three surfaces will use.
+2. **Better code for a how-to.** Three questions in six currently get a
+   citation and no snippet, because the example that answers them is a whole
+   file longer than 40 lines. Extracting the one function that answers the
+   question, and compiling the extract, is what closes that.
 3. **The eval set**, before any training: 200 held-out completion cases scored
    on exact match, edit distance, does it parse, does it pass its test.
 4. **Corpus generation**, verified by compiling every sample — which needs a
@@ -156,6 +192,7 @@ paRY/corpus/collect.py the corpus, with provenance and content hashes
 paRY/verify/oracle.py  the compiler as a judge
 paRY/tokenizer/        training and measurement
 paRY/index/            the FTS5 retrieval index, and asking it questions
+paRY/answer/           intent routing, and the answer itself
 docs/ARCHITECTURE.md   four surfaces, one core, and the build order
 data/                  everything generated — reproducible, and not committed
 ```
