@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">paRY</string>
+    <string name="tagline">An eTamil assistant. Nothing here calls a hosted model.</string>
+    <string name="setup_prompt">Where is your paRY server? Run <b>python -m paRY.serve --host 0.0.0.0</b> on that machine.</string>
+    <string name="server_hint">192.168.1.9:8900</string>
+    <string name="connect">Connect</string>
+    <string name="bad_address">That is not an address paRY can reach.</string>
+    <string name="unreachable">Could not reach %1$s.\n%2$s</string>
+</resources>

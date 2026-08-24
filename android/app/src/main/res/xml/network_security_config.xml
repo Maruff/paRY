@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Cleartext is permitted because a paRY server is normally an internal host on
+  the institution's own network, reached by IP over plain HTTP, and the whole
+  point of the project is that nothing leaves that network. Put it behind TLS
+  and this file can be deleted; nothing else depends on it.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true" />
+</network-security-config>

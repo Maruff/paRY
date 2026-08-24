@@ -218,6 +218,29 @@ than the page scrolling underneath; and `scrollIntoView({behavior: "smooth"})`
 silently does nothing in some embedded webviews, which leaves a chat that does
 not follow its own output.
 
+### Android
+
+`android/` is the same client in a WebView, pointed at a paRY server —
+[`android/README.md`](android/README.md) has the detail.
+
+**Written, never built.** There is no JDK, Gradle or Android SDK on the machine
+that wrote it, so nothing there has been compiled or run. What was checked is
+what can be checked without a toolchain: every XML parses, every `@string`,
+`@color`, `@drawable`, `@xml` and `@id` reference resolves, every `R.*` in the
+Kotlin resolves, and the Tamil strings carry the same format arguments as the
+English. Expect the first `assembleDebug` to still find something.
+
+What *is* verified is the half that runs here: `python -m paRY.serve --host
+0.0.0.0` serves both the API and the client on the machine's LAN addresses, so
+a phone on the same network reaches it at `192.168.x.x:8900` — subject to the
+host firewall allowing the port.
+
+The APK carries no copy of `web/`. Answers come from the server, so a bundled
+client would gain nothing offline and could drift out of step with the protocol
+it speaks; loading it from the server keeps one chat window across all three
+surfaces. That changes when Phase A is small enough to run on the phone — and
+the protocol will not, which is the reason for settling it first.
+
 ## Next
 
 The plan is four surfaces — web and Android chat, a VS Code extension, a
@@ -250,6 +273,7 @@ paRY/index/            the FTS5 retrieval index, and asking it questions
 paRY/answer/           intent routing, and the answer itself
 paRY/serve/            the HTTP protocol every client shares
 web/                   the chat client, served by that server
+android/               the same client in a WebView — unbuilt, see its README
 docs/ARCHITECTURE.md   four surfaces, one core, and the build order
 data/                  everything generated — reproducible, and not committed
 ```

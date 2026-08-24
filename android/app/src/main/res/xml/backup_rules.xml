@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The server address is worth restoring to a new phone; nothing else is kept. -->
+<full-backup-content>
+    <include domain="sharedpref" path="paRY.xml" />
+</full-backup-content>

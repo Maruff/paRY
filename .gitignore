@@ -5,3 +5,10 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 *.egg-info/
+
+# Android build output; the Gradle wrapper jar is fetched by `gradle wrapper`.
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+/android/gradle/wrapper/gradle-wrapper.jar

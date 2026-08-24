@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- DayNight so the WebView reports the right prefers-color-scheme to the
+         client, whose stylesheet already answers it. -->
+    <style name="Theme.paRY" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/accent</item>
+        <item name="colorAccent">@color/accent</item>
+    </style>
+</resources>
