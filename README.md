@@ -23,6 +23,7 @@ python -m paRY.tokenizer.train && python -m paRY.tokenizer.measure
 python -m paRY.index.build                # build the retrieval index
 python -m paRY.index.search "how do I read a file"
 python -m paRY.answer "how do I write a row to a CSV file"
+python -m paRY.serve                      # the HTTP API on 127.0.0.1:8900
 ```
 
 Where this is going — four surfaces over one core, and which model each of them
@@ -161,6 +162,39 @@ cited rather than pasted, because half a program does not compile. When nothing
 answers, paRY says so instead of composing something plausible — that invariant
 is a test, run over every intent.
 
+### The server
+
+The one protocol all four surfaces speak. `pip install -e ".[serve]"`, then
+`python -m paRY.serve`.
+
+| | | |
+|---|---|---|
+| `POST /ask` | question, optional source, optional locale | the answer above, as JSON |
+| `POST /diagnose` | source | the compiler's diagnostics, bilingual, with line and column |
+| `GET /search` | `?q=&limit=&kind=` | ranked corpus hits |
+| `POST /complete` | prefix, suffix | **501** until Phase A is trained |
+| `GET /health` | | compiler version, index size, and `model: null` |
+
+```console
+$ curl -s localhost:8900/health
+{"version":"0.1.0","compiler":"etamil 0.4.0","index":"…/paRY.db","chunks":1721,"model":null}
+```
+
+`/complete` is declared and refuses rather than being absent, so a client can be
+written against the whole protocol today. Answering it from retrieval would be
+worse than answering nothing: an editor that inserts a wrong line teaches it.
+`/health` reports `model: null` for the same reason — what is behind an answer
+should not have to be inferred.
+
+The handlers are synchronous on purpose. Each one spawns the compiler or hits
+SQLite, and FastAPI runs a `def` handler in a threadpool; `async def` would put
+blocking work on the event loop and stall every request behind the slowest
+compile.
+
+The default bind is loopback. This server compiles what it is sent, so it
+belongs inside the network that owns the code, behind that network's own
+authentication — `--host 0.0.0.0` is a decision you have to type.
+
 ## Next
 
 The plan is four surfaces — web and Android chat, a VS Code extension, a
@@ -171,8 +205,7 @@ that does not match the order they are listed in.
 
 Immediately:
 
-1. **The server**, then the web chat client — surface 1, end to end, with the
-   same protocol the other three surfaces will use.
+1. **The web chat client** — surface 1, end to end, on the protocol above.
 2. **Better code for a how-to.** Three questions in six currently get a
    citation and no snippet, because the example that answers them is a whole
    file longer than 40 lines. Extracting the one function that answers the
@@ -193,6 +226,7 @@ paRY/verify/oracle.py  the compiler as a judge
 paRY/tokenizer/        training and measurement
 paRY/index/            the FTS5 retrieval index, and asking it questions
 paRY/answer/           intent routing, and the answer itself
+paRY/serve/            the HTTP protocol every client shares
 docs/ARCHITECTURE.md   four surfaces, one core, and the build order
 data/                  everything generated — reproducible, and not committed
 ```

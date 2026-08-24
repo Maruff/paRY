@@ -8,7 +8,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8"]
+serve = ["fastapi>=0.115", "uvicorn[standard]>=0.32"]
+dev = ["pytest>=8", "fastapi>=0.115", "uvicorn[standard]>=0.32", "httpx2>=0.1"]
 
 [build-system]
 requires = ["setuptools>=68"]
@@ -20,6 +21,7 @@ packages = [
     "paRY.answer",
     "paRY.corpus",
     "paRY.index",
+    "paRY.serve",
     "paRY.tokenizer",
     "paRY.verify",
 ]
