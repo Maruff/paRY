@@ -17,3 +17,6 @@ __pycache__/
 /vscode/node_modules/
 /vscode/out/
 /vscode/*.vsix
+
+# Packaging output: the frozen server, the staged payload and the zip.
+/build/

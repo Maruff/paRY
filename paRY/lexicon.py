@@ -14,9 +14,12 @@ a retrieval index built on a stale list makes the same mistake more quietly.
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from functools import lru_cache
+from pathlib import Path
 from types import ModuleType
 
 from . import config
@@ -63,8 +66,54 @@ def _load_generator() -> ModuleType:
     return module
 
 
+def snapshot_path() -> Path:
+    """Where the derived lexicon is kept for machines without the source tree."""
+    return config.DATA_DIR / "lexicon.json"
+
+
+def export(path: Path | None = None) -> Path:
+    """Write the lexicon out, so a packaged paRY does not need `lexer.rs`.
+
+    Derivation still happens here, from the compiler, at build time. What ships
+    is the result — an installed copy on a developer's laptop has no eTamil
+    repository to read, and the alternative would be a hand-kept list, which is
+    the thing this module exists to avoid.
+    """
+    target = path or snapshot_path()
+    names = load()
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(
+        json.dumps(
+            {
+                "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                "source": str(config.ETAMIL_ROOT),
+                "keywords": names.keywords,
+                "builtins": names.builtins,
+                "stdlib": names.stdlib,
+            },
+            ensure_ascii=False,
+            indent=2,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return target
+
+
 @lru_cache(maxsize=1)
 def load() -> Lexicon:
+    # A snapshot wins when the source tree is not there. It never wins over a
+    # readable tree: on a development machine the compiler is the truth, and a
+    # stale snapshot silently answering for it is exactly the drift this guards.
+    lexer = config.ETAMIL_ROOT / "etamil_compiler" / "src" / "lexer.rs"
+    if not lexer.exists() and snapshot_path().exists():
+        stored = json.loads(snapshot_path().read_text(encoding="utf-8"))
+        return Lexicon(
+            keywords=stored["keywords"],
+            builtins=stored["builtins"],
+            stdlib=stored["stdlib"],
+        )
+
     generator = _load_generator()
     try:
         keywords = generator.read_tokens()
@@ -84,11 +133,19 @@ def load() -> Lexicon:
 
 
 def main() -> int:
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Read the language out of the compiler.")
+    parser.add_argument("--export", action="store_true", help="write data/lexicon.json for packaging")
+    args = parser.parse_args()
+
     lexicon = load()
     print(f"keywords  {len(lexicon.keywords):>4} tokens in {len(lexicon.keyword_spellings)} spellings")
     print(f"builtins  {len(lexicon.builtins):>4} host functions")
     print(f"nUlakam   {len(lexicon.stdlib):>4} செயல் definitions")
     print(f"vocabulary{len(lexicon.vocabulary):>4} distinct names")
+    if args.export:
+        print(f"exported to {export()}")
     return 0
 
 

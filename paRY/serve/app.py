@@ -28,9 +28,11 @@ on the open internet.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from contextlib import closing
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from fastapi import Body, FastAPI, HTTPException, Query
@@ -49,7 +51,10 @@ MAX_SOURCE_BYTES = 256 * 1024
 
 # The web client, served by the server it talks to, so `python -m paRY.serve` is
 # the whole install. Mounted last: it answers everything the API did not claim.
-WEB_ROOT = config.REPO_ROOT / "web"
+#
+# PARY_WEB overrides the location because an installed copy is not laid out like
+# the repository — the packaged server sets it to its own bundled `web/`.
+WEB_ROOT = Path(os.environ["PARY_WEB"]) if os.environ.get("PARY_WEB") else config.REPO_ROOT / "web"
 
 
 class AskRequest(BaseModel):

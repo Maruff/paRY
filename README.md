@@ -300,6 +300,43 @@ The provisioner is a guest in an existing configuration: it backs up
 someone chose, and prints exactly what it did. Telemetry and update settings are
 applied to VSCodium only, never to the VS Code someone uses every day.
 
+### The Windows package
+
+```bash
+python packaging/windows/build.py     # -> build/windows/eTamil-IDE-0.1.0-win-x64.zip
+```
+
+**21.5 MB**, and the machine it installs on needs neither Python nor a compiler
+toolchain:
+
+| | |
+|---|---|
+| `compiler/` | `etamil.exe`, `nUlakam`, `examples` — 7 MB |
+| `pary/` | the server frozen with PyInstaller, its index, its web client — 38 MB unpacked |
+| `extensions/` | both `.vsix` |
+| `profile/` | the settings and keybindings |
+| `Install.ps1` | per-user install, no administrator rights |
+
+Two things had to change for a package to be possible at all. The lexicon is
+read out of `lexer.rs`, which an installed copy does not have — so
+`paRY.lexicon` exports a **snapshot** at build time and reads it when the source
+tree is absent, while a readable tree still always wins, because a stale
+snapshot answering for a compiler that has moved on is the drift the module
+exists to prevent. And the web client's location became an environment
+variable, since an install is not laid out like a repository.
+
+**The editor is not in the zip.** VSCodium is a hundred megabytes maintained by
+other people; a copy frozen in here would be a copy nobody updates. `Install.ps1`
+finds VSCodium or VS Code, or fetches VSCodium with winget given `-InstallEditor`.
+
+Verified by running it: the packaged server, started from the staged folder with
+no environment variables set, found its own compiler and its own index, answered
+`/ask` with verified code, returned the compiler's bilingual diagnostic from
+`/diagnose`, and resolved `இறக்கு "nUlakam/paNam.qmz"` against its own bundled
+standard library. Then `Install.ps1` was run into a temporary directory and
+`-Uninstall` put the machine back exactly as it was — PATH, `ETAMIL_PATH`,
+Start Menu and all.
+
 ## Next
 
 The plan is four surfaces — web and Android chat, a VS Code extension, a
@@ -335,6 +372,7 @@ web/                   the chat client, served by that server
 android/               the same client in a WebView — unbuilt, see its README
 vscode/                the editor extension — installed and activating
 desktop/               VSCodium provisioning: the IDE surface
+packaging/windows/     the installable package and its installer
 docs/ARCHITECTURE.md   four surfaces, one core, and the build order
 data/                  everything generated — reproducible, and not committed
 ```
