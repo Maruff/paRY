@@ -17,6 +17,15 @@ import { NotImplemented, ParyClient } from "./client";
 
 export class InlineCompletions implements vscode.InlineCompletionItemProvider {
   private unavailable = false;
+  /**
+   * One request outstanding at a time.
+   *
+   * Without this, "ask once and stop" is a race rather than a rule: VS Code
+   * fires the provider on consecutive keystrokes, and every request dispatched
+   * before the first 501 comes back is another 501 and another popup. The
+   * server log showed exactly two on a single file open.
+   */
+  private outstanding = false;
 
   constructor(private readonly client: ParyClient) {}
 
@@ -29,7 +38,7 @@ export class InlineCompletions implements vscode.InlineCompletionItemProvider {
     const enabled = vscode.workspace
       .getConfiguration("pary")
       .get<boolean>("inlineCompletion.enabled", true);
-    if (this.unavailable || !enabled) {
+    if (this.unavailable || !enabled || this.outstanding) {
       return [];
     }
 
@@ -38,6 +47,7 @@ export class InlineCompletions implements vscode.InlineCompletionItemProvider {
       new vscode.Range(position, document.lineAt(document.lineCount - 1).range.end),
     );
 
+    this.outstanding = true;
     try {
       const result = await this.client.complete(prefix, suffix, document.uri.fsPath);
       if (token.isCancellationRequested || !result.completion) {
@@ -47,13 +57,13 @@ export class InlineCompletions implements vscode.InlineCompletionItemProvider {
     } catch (cause) {
       if (cause instanceof NotImplemented) {
         this.unavailable = true;
-        void vscode.window.showInformationMessage(
-          `paRY: ${cause.message}`,
-        );
+        void vscode.window.showInformationMessage(`paRY: ${cause.message}`);
       }
       // Any other failure — server down, timeout — is silent. A completion
       // provider that pops a dialog while someone is typing is unusable.
       return [];
+    } finally {
+      this.outstanding = false;
     }
   }
 }

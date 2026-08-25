@@ -106,3 +106,32 @@ button {
 }
 button:hover { background: var(--vscode-button-hoverBackground); }
 button:disabled { opacity: 0.6; cursor: progress; }
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+.actions button {
+  align-self: auto;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.85em;
+  color: var(--vscode-button-secondaryForeground, var(--vscode-foreground));
+  background: var(--vscode-button-secondaryBackground, transparent);
+  border: 1px solid var(--vscode-panel-border);
+}
+.actions button:hover {
+  background: var(--vscode-button-secondaryHoverBackground, var(--vscode-list-hoverBackground));
+}
+.actions .verdict { margin-right: auto; }
+
+/* What happened in the editor, reported back into the chat. */
+.note {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+  border-left: 2px solid var(--vscode-panel-border);
+  padding-left: 0.65rem;
+}

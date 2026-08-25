@@ -28,6 +28,37 @@ corpus chunks, and named fixes for the mistakes worth recognising by name. Code
 in an answer carries the server's ✓ compiles verdict; the panel cannot mark
 something as compiling by itself.
 
+**Code goes to the editor; the sentence about it stays in the chat.** That is
+the split, and it is what makes this Copilot-shaped rather than a search box:
+
+- <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>I</kbd> — say what you want written, and
+  it lands at the cursor. The prose explaining it goes to the panel.
+- Every code block in the chat carries **Insert at cursor**, **Replace
+  selection** and **Copy**.
+- After an insertion the chat says what happened — *inserted 4 lines in
+  examples/tax.qmz* — because an edit that appears somewhere else is otherwise
+  invisible.
+
+Two details that decide whether this feels right:
+
+**Insertion targets the last editor that had focus**, not the active one.
+`activeTextEditor` is undefined while a webview has focus, and clicking a button
+in the panel is exactly when that happens.
+
+**Inserted code is re-indented to the cursor.** A block dropped inside a
+`எனில்` at column zero means the developer's first act is fixing whitespace,
+which is not what an assistant is for. The first line is left alone because the
+cursor is already in the right column; blank lines stay blank.
+
+**The insert buttons only appear when the server said the code compiles.**
+Anything unverified can be read and copied, never inserted — the same invariant
+the rest of paRY is built on, enforced where it would do the most damage.
+
+Until Phase A exists, nothing is generating anything: a request for code returns
+a *verified example from the corpus*. That is the honest version of the gesture,
+and when the model arrives the call does not change — `answer.code` starts being
+written rather than retrieved.
+
 **Inline completion**, registered and refusing. The server answers `501` because
 the Phase A model is not trained, so paRY says so once and stops asking. It does
 not fall back to retrieval: a plausible line pulled from a similar example is

@@ -1,7 +1,31 @@
 [
-  { "key": "f5", "command": "etamil.run", "when": "editorLangId == etamil" },
-  { "key": "ctrl+f5", "command": "etamil.serve", "when": "editorLangId == etamil" },
-  { "key": "ctrl+alt+p", "command": "pary.ask" },
-  { "key": "ctrl+alt+e", "command": "pary.explain", "when": "editorLangId == etamil" },
-  { "key": "ctrl+alt+d", "command": "pary.diagnose", "when": "editorLangId == etamil" }
+  {
+    "key": "f5",
+    "command": "etamil.run",
+    "when": "editorLangId == etamil"
+  },
+  {
+    "key": "ctrl+f5",
+    "command": "etamil.serve",
+    "when": "editorLangId == etamil"
+  },
+  {
+    "key": "ctrl+alt+i",
+    "command": "pary.generate",
+    "when": "editorTextFocus && editorLangId == etamil"
+  },
+  {
+    "key": "ctrl+alt+p",
+    "command": "pary.ask"
+  },
+  {
+    "key": "ctrl+alt+e",
+    "command": "pary.explain",
+    "when": "editorLangId == etamil"
+  },
+  {
+    "key": "ctrl+alt+d",
+    "command": "pary.diagnose",
+    "when": "editorLangId == etamil"
+  }
 ]

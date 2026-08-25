@@ -21,6 +21,7 @@ import * as vscode from "vscode";
 import { ParyClient } from "./client";
 import { InlineCompletions } from "./completion";
 import { DiagnosticRunner, ETAMIL, isEtamil } from "./diagnostics";
+import { trackEditors } from "./editors";
 import { ChatPanel, activeSource } from "./panel";
 
 /**
@@ -39,6 +40,10 @@ export function activate(context: vscode.ExtensionContext): void {
     diagnostics.register(context);
   }
 
+  // Which file an insertion targets has to be remembered before the panel
+  // takes focus, because that is when activeTextEditor becomes undefined.
+  trackEditors(context);
+
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = "pary.checkServer";
   context.subscriptions.push(status);
@@ -56,6 +61,16 @@ export function activate(context: vscode.ExtensionContext): void {
       });
       if (question) {
         await panel.ask(question, activeSource());
+      }
+    }),
+
+    vscode.commands.registerCommand("pary.generate", async () => {
+      const request = await vscode.window.showInputBox({
+        prompt: "What should paRY write?",
+        placeHolder: "a function that totals an array  /  ஒரு CSV வரியை எழுது",
+      });
+      if (request) {
+        await panel.generate(request, activeSource());
       }
     }),
 

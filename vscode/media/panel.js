@@ -91,10 +91,16 @@ function renderAnswer(answer) {
 
   if (answer.code) {
     html += `<pre><code>${escapeHtml(answer.code.replace(/\n$/, ""))}</code></pre>`;
-    // The server's verdict, never the panel's guess.
+    // The server's verdict, never the panel's guess — and the buttons that put
+    // it in the file appear only when that verdict is good. Code paRY has not
+    // compiled can be read and copied, never inserted.
     html += answer.code_compiles
-      ? '<div class="verdict">✓ compiles</div>'
-      : '<div class="verdict bad">✗ not verified</div>';
+      ? '<div class="actions"><span class="verdict">✓ compiles</span>' +
+        '<button data-place="insert">Insert at cursor</button>' +
+        '<button data-place="replace">Replace selection</button>' +
+        '<button data-copy>Copy</button></div>'
+      : '<div class="actions"><span class="verdict bad">✗ not verified</span>' +
+        '<button data-copy>Copy</button></div>';
   }
 
   if (answer.citations && answer.citations.length) {
@@ -110,6 +116,11 @@ function renderAnswer(answer) {
   }
 
   node.innerHTML = html;
+  // The buttons need the code, and the code is not what is displayed: the
+  // displayed version is escaped. Keep the original on the message.
+  if (answer.code) {
+    node.dataset.code = answer.code;
+  }
   scrollToLatest();
 }
 
@@ -130,12 +141,35 @@ window.addEventListener("message", (event) => {
   } else if (message.type === "answer") {
     renderAnswer(message.answer);
     askButton.disabled = false;
+  } else if (message.type === "note") {
+    // What happened in the editor, said in the chat. This is the half of the
+    // split that would otherwise be invisible: the code went to the file, and
+    // the sentence about it stays here.
+    add("note", escapeHtml(message.message));
   } else if (message.type === "error") {
     const node = pending ?? add("message assistant", "");
     node.innerHTML = `<div class="verdict bad">${escapeHtml(message.message)}</div>`;
     pending = null;
     askButton.disabled = false;
     scrollToLatest();
+  }
+});
+
+/* One listener for the whole transcript rather than one per code block: the
+ * transcript only grows, and every answer added later is covered by this. */
+transcript.addEventListener("click", (event) => {
+  const button = event.target.closest("button");
+  if (!button) {
+    return;
+  }
+  const code = button.closest("[data-code]")?.dataset.code;
+  if (!code) {
+    return;
+  }
+  if (button.hasAttribute("data-copy")) {
+    vscode.postMessage({ type: "copy", code });
+  } else {
+    vscode.postMessage({ type: "place", how: button.dataset.place, code });
   }
 });
 

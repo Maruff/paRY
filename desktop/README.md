@@ -59,6 +59,7 @@ they use every day, so they are not applied to `code`.
 |---|---|
 | <kbd>F5</kbd> | run this file (`etamil.run`) |
 | <kbd>Ctrl</kbd>+<kbd>F5</kbd> | serve this file (`etamil.serve`) |
+| <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>I</kbd> | write code into the editor at the cursor |
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>P</kbd> | ask paRY |
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>E</kbd> | explain the selection |
 | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>D</kbd> | why does this not compile |

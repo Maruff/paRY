@@ -44,6 +44,11 @@
     },
     "commands": [
       {
+        "command": "pary.generate",
+        "title": "paRY: Write code into the editor",
+        "icon": "$(sparkle)"
+      },
+      {
         "command": "pary.ask",
         "title": "paRY: Ask a question",
         "icon": "$(comment-discussion)"
@@ -63,6 +68,11 @@
     ],
     "menus": {
       "editor/context": [
+        {
+          "command": "pary.generate",
+          "when": "resourceExtname == .qmz",
+          "group": "pary@0"
+        },
         {
           "command": "pary.explain",
           "when": "editorHasSelection && resourceExtname == .qmz",
@@ -110,13 +120,27 @@
           "description": "Which language paRY answers in. Auto matches the language of the question."
         }
       }
-    }
+    },
+    "keybindings": [
+      {
+        "command": "pary.generate",
+        "key": "ctrl+alt+i",
+        "mac": "cmd+alt+i",
+        "when": "editorTextFocus && editorLangId == etamil"
+      },
+      {
+        "command": "pary.ask",
+        "key": "ctrl+alt+p",
+        "mac": "cmd+alt+p"
+      }
+    ]
   },
   "scripts": {
     "compile": "tsc -p .",
     "watch": "tsc -watch -p .",
     "check": "tsc -p . --noEmit",
-    "package": "vsce package"
+    "package": "vsce package",
+    "test": "tsc -p . && node --test test/*.test.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

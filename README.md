@@ -267,6 +267,12 @@ installed, because that extension already compiles on type with the local
 binary — two extensions reporting the same compiler's errors means two
 squiggles on every mistake.
 
+Code from an answer goes **into the editor** — <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>I</kbd>
+writes at the cursor, and every chat code block has *Insert at cursor* and
+*Replace selection* — while the prose stays in the panel, which is the Copilot
+shape. Inserted code is re-indented to the cursor, and the buttons appear only
+when the server said it compiles.
+
 **Installed and running here.** Both extensions are packaged and installed into
 VS Code (`etamil.etamil-support@0.4.0`, `etamil.pary@0.1.0`), and the server log
 shows the extension reaching `/health` on activation — and no `/diagnose`,

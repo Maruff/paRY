@@ -9,10 +9,13 @@
 
 import * as vscode from "vscode";
 import { Answer, ParyClient } from "./client";
+import { Placement, place } from "./editors";
 
 type Incoming =
   | { type: "ready" }
-  | { type: "ask"; question: string; includeSource: boolean };
+  | { type: "ask"; question: string; includeSource: boolean }
+  | { type: "place"; how: Placement; code: string }
+  | { type: "copy"; code: string };
 
 export class ChatPanel implements vscode.WebviewViewProvider {
   public static readonly viewId = "pary.chat";
@@ -36,6 +39,11 @@ export class ChatPanel implements vscode.WebviewViewProvider {
         void this.reportHealth();
       } else if (message.type === "ask") {
         void this.ask(message.question, message.includeSource ? activeSource() : undefined);
+      } else if (message.type === "place") {
+        void this.place(message.code, message.how);
+      } else if (message.type === "copy") {
+        void vscode.env.clipboard.writeText(message.code);
+        this.post({ type: "note", message: "copied" });
       }
     });
   }
@@ -47,6 +55,43 @@ export class ChatPanel implements vscode.WebviewViewProvider {
     try {
       const answer: Answer = await this.client.ask(question, source);
       this.post({ type: "answer", answer });
+    } catch (cause) {
+      this.post({ type: "error", message: String(cause) });
+    }
+  }
+
+  /**
+   * Put an answer's code in the editor, and say in the chat what happened.
+   *
+   * The split the whole panel is built around: code belongs in the file, and
+   * the sentence about it belongs here.
+   */
+  private async place(code: string, how: Placement): Promise<void> {
+    this.post({ type: "note", message: await place(code, how) });
+  }
+
+  /**
+   * Ask for code and put it straight in the file.
+   *
+   * Until Phase A exists there is nothing generating anything: this returns a
+   * verified example from the corpus, which is the honest version of the same
+   * gesture. When a model arrives the call does not change — the answer's
+   * `code` starts being written rather than retrieved.
+   */
+  async generate(request: string, source?: string): Promise<void> {
+    await vscode.commands.executeCommand(`${ChatPanel.viewId}.focus`);
+    this.post({ type: "asked", question: request, withSource: source !== undefined });
+    try {
+      const answer = await this.client.ask(request, source);
+      this.post({ type: "answer", answer });
+      if (answer.code && answer.code_compiles) {
+        this.post({ type: "note", message: await place(answer.code, "insert") });
+      } else {
+        this.post({
+          type: "note",
+          message: "nothing verified to insert — paRY will not write code it has not compiled",
+        });
+      }
     } catch (cause) {
       this.post({ type: "error", message: String(cause) });
     }
