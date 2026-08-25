@@ -1,0 +1,108 @@
+/* Every colour comes from the editor's own theme, so paRY looks like the
+   VS Code the developer already chose rather than a website inside it. */
+
+body {
+  margin: 0;
+  padding: 0.5rem 0.75rem 0.75rem;
+  color: var(--vscode-foreground);
+  font-family: var(--vscode-font-family);
+  font-size: var(--vscode-font-size);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  box-sizing: border-box;
+}
+
+.health {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.85em;
+  color: var(--vscode-descriptionForeground);
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--vscode-panel-border);
+}
+.health .no-model { color: var(--vscode-charts-orange, var(--vscode-textLink-foreground)); }
+
+#transcript {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0.75rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.message.user {
+  align-self: flex-end;
+  max-width: 90%;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 6px;
+  padding: 0.35rem 0.6rem;
+  white-space: pre-wrap;
+}
+.message.assistant {
+  border-left: 2px solid var(--vscode-textLink-foreground);
+  padding-left: 0.65rem;
+}
+
+.meta {
+  font-family: var(--vscode-editor-font-family);
+  font-size: 0.8em;
+  color: var(--vscode-descriptionForeground);
+  display: flex;
+  gap: 0.5rem;
+  padding-bottom: 0.25rem;
+}
+.meta .exact { color: var(--vscode-testing-iconPassed, inherit); }
+.meta .none { color: var(--vscode-testing-iconFailed, inherit); }
+
+h2, h3 { font-size: 1em; margin: 0.6rem 0 0.3rem; }
+p { margin: 0.35rem 0; }
+ul { margin: 0.3rem 0; padding-left: 1.1rem; }
+
+code, pre {
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
+}
+code { background: var(--vscode-textCodeBlock-background); padding: 0 0.25em; border-radius: 3px; }
+pre {
+  background: var(--vscode-textCodeBlock-background);
+  border: 1px solid var(--vscode-panel-border);
+  border-radius: 4px;
+  padding: 0.5rem 0.6rem;
+  overflow-x: auto;
+}
+pre code { background: none; padding: 0; }
+
+.verdict { font-size: 0.8em; color: var(--vscode-testing-iconPassed, inherit); }
+.verdict.bad { color: var(--vscode-testing-iconFailed, inherit); }
+
+.citations { font-size: 0.85em; color: var(--vscode-descriptionForeground); margin-top: 0.4rem; }
+.citations ul { list-style: none; padding: 0; margin: 0.2rem 0 0; }
+.citations li { font-family: var(--vscode-editor-font-family); }
+
+#composer { display: flex; flex-direction: column; gap: 0.4rem; }
+textarea {
+  width: 100%;
+  box-sizing: border-box;
+  resize: vertical;
+  color: var(--vscode-input-foreground);
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+  border-radius: 4px;
+  padding: 0.4rem 0.5rem;
+  font-family: var(--vscode-font-family);
+}
+.include { font-size: 0.85em; color: var(--vscode-descriptionForeground); }
+button {
+  align-self: flex-end;
+  color: var(--vscode-button-foreground);
+  background: var(--vscode-button-background);
+  border: none;
+  border-radius: 4px;
+  padding: 0.35rem 1rem;
+  cursor: pointer;
+}
+button:hover { background: var(--vscode-button-hoverBackground); }
+button:disabled { opacity: 0.6; cursor: progress; }

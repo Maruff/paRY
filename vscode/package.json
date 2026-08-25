@@ -1,0 +1,130 @@
+{
+  "name": "pary",
+  "displayName": "paRY — eTamil assistant",
+  "description": "Ask about eTamil, and see the compiler's own answer. No hosted model is called.",
+  "version": "0.1.0",
+  "publisher": "etamil",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.84.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "etamil",
+    "tamil",
+    "fintech"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onLanguage:etamil",
+    "workspaceContains:**/*.qmz"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pary",
+          "title": "paRY",
+          "icon": "media/drum.svg"
+        }
+      ]
+    },
+    "views": {
+      "pary": [
+        {
+          "id": "pary.chat",
+          "name": "Ask paRY",
+          "type": "webview"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "pary.ask",
+        "title": "paRY: Ask a question",
+        "icon": "$(comment-discussion)"
+      },
+      {
+        "command": "pary.explain",
+        "title": "paRY: Explain this"
+      },
+      {
+        "command": "pary.diagnose",
+        "title": "paRY: Why does this not compile?"
+      },
+      {
+        "command": "pary.checkServer",
+        "title": "paRY: Check the server"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "pary.explain",
+          "when": "editorHasSelection && resourceExtname == .qmz",
+          "group": "pary@1"
+        },
+        {
+          "command": "pary.diagnose",
+          "when": "resourceExtname == .qmz",
+          "group": "pary@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "paRY",
+      "properties": {
+        "pary.server": {
+          "type": "string",
+          "default": "http://127.0.0.1:8900",
+          "markdownDescription": "The paRY server. Start one with `python -m paRY.serve`."
+        },
+        "pary.diagnostics.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Compile eTamil files with the server as you type, and show what the compiler says."
+        },
+        "pary.diagnostics.delay": {
+          "type": "number",
+          "default": 600,
+          "minimum": 100,
+          "description": "Milliseconds to wait after a keystroke before compiling."
+        },
+        "pary.inlineCompletion.enabled": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Ask the server for inline completions. The server answers `501` until the Phase A model is trained, and paRY then stops asking until this window is reloaded."
+        },
+        "pary.locale": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "en",
+            "ta"
+          ],
+          "default": "auto",
+          "description": "Which language paRY answers in. Auto matches the language of the question."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "compile": "tsc -p .",
+    "watch": "tsc -watch -p .",
+    "check": "tsc -p . --noEmit",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/vscode": "^1.84.0",
+    "typescript": "^5.7.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Maruff/paRY"
+  }
+}

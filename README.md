@@ -241,6 +241,27 @@ it speaks; loading it from the server keeps one chat window across all three
 surfaces. That changes when Phase A is small enough to run on the phone — and
 the protocol will not, which is the reason for settling it first.
 
+### VS Code
+
+`vscode/` is the editor extension — [`vscode/README.md`](vscode/README.md) has
+the detail. Three things, in the order they are worth having:
+
+1. **Diagnostics** — the compiler's own errors in the editor as you type,
+   bilingual, with line and column. Needs no model and never will.
+2. **A chat panel** — the same answer engine, in the activity bar.
+3. **Inline completion** — registered, and refusing with 501 until Phase A.
+
+**Typechecks and compiles; never run in an extension host**, because no editor
+was available where it was written. The layer that *could* be checked was: a
+script drove a live server through every call the extension makes and confirmed
+all 26 field shapes it depends on — diagnostics 1-based and bilingual,
+`/complete` refusing with a readable `detail`, and no answer carrying code the
+server had not compiled.
+
+It contributes no grammar, keywords or hovers. `etamil-support` already
+generates those from `lexer.rs` so they cannot drift; duplicating them here
+would be the mistake that extension exists to correct.
+
 ## Next
 
 The plan is four surfaces — web and Android chat, a VS Code extension, a
@@ -274,6 +295,7 @@ paRY/answer/           intent routing, and the answer itself
 paRY/serve/            the HTTP protocol every client shares
 web/                   the chat client, served by that server
 android/               the same client in a WebView — unbuilt, see its README
+vscode/                the editor extension — compiles, never run in an editor
 docs/ARCHITECTURE.md   four surfaces, one core, and the build order
 data/                  everything generated — reproducible, and not committed
 ```

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- பறை: the drum an announcement was made on. Single colour, so VS Code
+       can tint it for the active and inactive activity-bar states. -->
+  <path fill="currentColor" d="M4 8h16v2H4zm0 6h16v2H4z"/>
+  <path fill="currentColor" d="M6 10h12v4H6z" opacity=".55"/>
+  <path fill="none" stroke="currentColor" stroke-width="1.2" d="M8 10l3 4m1-4l3 4"/>
+</svg>
