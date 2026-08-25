@@ -60,6 +60,20 @@ function Find-Editor {
     return $null
 }
 
+# `code` and `codium` on PATH are .cmd shims in a bin\ directory. A shortcut
+# wants the real executable beside it: the shim has no icon and flashes a
+# console window on the way through.
+function Resolve-EditorExe($editorName) {
+    $command = Get-Command $editorName -ErrorAction SilentlyContinue
+    if (-not $command) { return $null }
+    $root = Split-Path (Split-Path $command.Source)
+    foreach ($exe in @('VSCodium.exe', 'Code.exe', 'Code - Insiders.exe')) {
+        $candidate = Join-Path $root $exe
+        if (Test-Path $candidate) { return $candidate }
+    }
+    return $command.Source
+}
+
 function Get-EditorUserDir($editorName) {
     $folder = switch ($editorName) {
         'codium'        { 'VSCodium' }
@@ -102,25 +116,56 @@ function Merge-JsonFile($target, $additions) {
         Copy-Item $target "$target.backup-$stamp"
     }
     New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
-    ($existing | ConvertTo-Json -Depth 20) | Out-File $target -Encoding utf8
+    # WriteAllText rather than Out-File: 5.1's -Encoding utf8 writes a byte-order
+    # mark, and settings files are read by more than one tool.
+    [System.IO.File]::WriteAllText(
+        $target,
+        (ConvertTo-Json -InputObject $existing -Depth 20),
+        (New-Object System.Text.UTF8Encoding($false))
+    )
     return $added
 }
 
+# Windows PowerShell 5.1 hands a JSON array back as ONE object instead of
+# enumerating it, so `@($text | ConvertFrom-Json)` produces a one-element array
+# holding the whole array rather than unrolling it. Merging on top of that
+# nests the file one level deeper every run, and ConvertTo-Json then writes the
+# inner array as a {value, Count} wrapper that the editor cannot read. This
+# function is why that cannot happen again; `foreach` does enumerate.
+function Read-JsonArray($path) {
+    if (-not (Test-Path $path)) { return , @() }
+    $text = (Get-Content $path -Raw).Trim()
+    if (-not $text) { return , @() }
+    try { $parsed = ConvertFrom-Json $text } catch { return $null }
+    $items = @()
+    foreach ($item in $parsed) { $items += $item }
+    return , $items
+}
+
+function Write-JsonArray($path, $items) {
+    $json = ConvertTo-Json -InputObject @($items) -Depth 20
+    # A one-element array serialises as a bare object; the editor wants a list.
+    if (-not $json.TrimStart().StartsWith('[')) { $json = "[$([Environment]::NewLine)$json$([Environment]::NewLine)]" }
+    New-Item -ItemType Directory -Force (Split-Path $path) | Out-Null
+    [System.IO.File]::WriteAllText($path, $json, (New-Object System.Text.UTF8Encoding($false)))
+}
+
 function Merge-Keybindings($target, $additions) {
-    $existing = @()
-    if (Test-Path $target) {
-        $text = (Get-Content $target -Raw).Trim()
-        if ($text) {
-            try { $existing = @($text | ConvertFrom-Json) }
-            catch { Write-Note "keybindings.json is not plain JSON - leaving it alone"; return @() }
-        }
+    $existing = Read-JsonArray $target
+    if ($null -eq $existing) {
+        Write-Note "keybindings.json is not plain JSON - leaving it alone"
+        return @()
     }
+
     $taken = @($existing | ForEach-Object { "$($_.key)|$($_.command)" })
     $fresh = @($additions | Where-Object { $taken -notcontains "$($_.key)|$($_.command)" })
     if ($fresh.Count -eq 0) { return @() }
 
-    New-Item -ItemType Directory -Force (Split-Path $target) | Out-Null
-    (@($existing + $fresh) | ConvertTo-Json -Depth 20) | Out-File $target -Encoding utf8
+    if (Test-Path $target) {
+        $stamp = Get-Date -Format 'yyyyMMddTHHmmss'
+        Copy-Item $target "$target.backup-$stamp"
+    }
+    Write-JsonArray $target (@($existing) + @($fresh))
     return @($fresh | ForEach-Object { "$($_.key) -> $($_.command)" })
 }
 
@@ -140,13 +185,16 @@ function Remove-FromUserPath($directory) {
     [Environment]::SetEnvironmentVariable('Path', ($kept -join ';'), 'User')
 }
 
-function New-Shortcut($path, $target, $arguments, $workingDirectory, $description) {
+function New-Shortcut($path, $target, $arguments, $workingDirectory, $description, $iconSource) {
     $shell = New-Object -ComObject WScript.Shell
     $link = $shell.CreateShortcut($path)
     $link.TargetPath = $target
     if ($arguments) { $link.Arguments = $arguments }
     $link.WorkingDirectory = $workingDirectory
     $link.Description = $description
+    # Both shortcuts are named "eTamil ..." so that typing eTamil in the Start
+    # Menu finds them — the folder name is not what Windows searches.
+    if ($iconSource) { $link.IconLocation = "$iconSource,0" }
     $link.Save()
 }
 
@@ -198,15 +246,9 @@ if (Add-ToUserPath $compilerDir) {
 [Environment]::SetEnvironmentVariable('ETAMIL_PATH', $compilerDir, 'User')
 Write-Step "ETAMIL_PATH = $compilerDir"
 
-New-Item -ItemType Directory -Force $startMenu | Out-Null
-New-Shortcut (Join-Path $startMenu 'paRY server.lnk') `
-    (Join-Path $InstallDir 'pary\pary-server.exe') $null (Join-Path $InstallDir 'pary') `
-    'The eTamil assistant - answers from the compiler, never a hosted model'
-Write-Step "Start Menu shortcut for the paRY server"
-
 # ------------------------------------------------------------------- editor --
 if ($SkipEditor) {
-    Write-Note "editor left alone (-SkipEditor)"
+    Write-Note "editor left alone (-SkipEditor) - no IDE shortcut without one"
     Write-Host ""
     Write-Host "Done." -ForegroundColor Green
     exit 0
@@ -224,8 +266,13 @@ if (-not $editorName -and $InstallEditor) {
 }
 
 if (-not $editorName) {
-    Write-Note "No editor found. Install VSCodium (https://vscodium.com), then re-run this script."
-    Write-Note "The compiler and paRY are installed and usable from a terminal."
+    New-Item -ItemType Directory -Force $startMenu | Out-Null
+    New-Shortcut (Join-Path $startMenu 'eTamil paRY server.lnk') `
+        (Join-Path $InstallDir 'pary\pary-server.exe') $null (Join-Path $InstallDir 'pary') `
+        'The eTamil assistant - answers from the compiler, never a hosted model' `
+        $null
+    Write-Note "No editor found. Install VSCodium (https://vscodium.com), then re-run this script"
+    Write-Note "to get the IDE shortcut. The compiler and paRY work from a terminal already."
     exit 0
 }
 
@@ -234,6 +281,32 @@ foreach ($package in Get-ChildItem (Join-Path $payload 'extensions') -Filter *.v
     & $editorName --install-extension $package.FullName --force | Out-Null
     Write-Step "installed $($package.Name)"
 }
+
+# --------------------------------------------------------------- shortcuts --
+# Written now rather than earlier, because "eTamil IDE" has to know which
+# editor it is opening.
+$editorExe = Resolve-EditorExe $editorName
+Set-Content -Path (Join-Path $InstallDir 'editor.txt') -Value $editorExe -Encoding utf8
+
+if (Test-Path $startMenu) { Remove-Item (Join-Path $startMenu '*.lnk') -Force }
+New-Item -ItemType Directory -Force $startMenu | Out-Null
+$launcher = Join-Path $InstallDir 'pary\start-ide.ps1'
+
+# One click starts the assistant and opens the editor, in that order — an IDE
+# whose assistant is not running is an editor with a broken sidebar.
+New-Shortcut (Join-Path $startMenu 'eTamil IDE.lnk') `
+    "$env:SystemRoot\System32\WindowsPowerShell\v1.0\powershell.exe" `
+    "-ExecutionPolicy Bypass -WindowStyle Hidden -File `"$launcher`"" `
+    (Join-Path $InstallDir 'pary') `
+    'The eTamil IDE - editor, compiler and the paRY assistant' `
+    $editorExe
+Write-Step "Start Menu: eTamil IDE"
+
+New-Shortcut (Join-Path $startMenu 'eTamil paRY server.lnk') `
+    (Join-Path $InstallDir 'pary\pary-server.exe') $null (Join-Path $InstallDir 'pary') `
+    'The eTamil assistant on its own - answers from the compiler, never a hosted model' `
+    $null
+Write-Step "Start Menu: eTamil paRY server"
 
 $userDir = Get-EditorUserDir $editorName
 $settings = Get-Content (Join-Path $payload 'profile\settings.json') -Raw | ConvertFrom-Json
@@ -260,6 +333,6 @@ if ($addedSettings.Count -eq 0 -and $addedKeys.Count -eq 0) {
 
 Write-Host ""
 Write-Host "Done." -ForegroundColor Green
-Write-Host "  Start Menu -> paRY server, then open a .qmz file in $editorName."
+Write-Host "  Start Menu -> eTamil IDE. It starts paRY and opens the editor."
 Write-Host "  Ctrl+Alt+I asks paRY to write code into the editor. F5 runs the file."
 Write-Host "  Open a new terminal for PATH and ETAMIL_PATH to take effect."

@@ -329,13 +329,25 @@ variable, since an install is not laid out like a repository.
 other people; a copy frozen in here would be a copy nobody updates. `Install.ps1`
 finds VSCodium or VS Code, or fetches VSCodium with winget given `-InstallEditor`.
 
+It installs two Start Menu entries, both named so that typing *eTamil* finds
+them — **eTamil IDE**, which starts the assistant and then opens the editor,
+because an IDE whose assistant is not running is an editor with a broken
+sidebar; and **eTamil paRY server** for the assistant on its own.
+
 Verified by running it: the packaged server, started from the staged folder with
 no environment variables set, found its own compiler and its own index, answered
 `/ask` with verified code, returned the compiler's bilingual diagnostic from
 `/diagnose`, and resolved `இறக்கு "nUlakam/paNam.qmz"` against its own bundled
-standard library. Then `Install.ps1` was run into a temporary directory and
-`-Uninstall` put the machine back exactly as it was — PATH, `ETAMIL_PATH`,
-Start Menu and all.
+standard library. `Install.ps1` was run into a temporary directory and
+`-Uninstall` put the machine back exactly as it was; then the Start Menu
+shortcut was launched and answered `/health` from the installed path.
+
+**Running the installer twice adds nothing the second time.** That is a test
+rather than an intention, because the first version of it was not idempotent:
+Windows PowerShell 5.1 returns a JSON array from `ConvertFrom-Json` as a single
+object instead of enumerating it, so merging into `keybindings.json` nested the
+file one level deeper on every run and wrote an unreadable `{value, Count}`
+wrapper. `Read-JsonArray` exists so that cannot happen again.
 
 ## Next
 

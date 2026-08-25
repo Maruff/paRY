@@ -26,9 +26,12 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
+import stat
 import subprocess
 import sys
+import time
 import zipfile
 from pathlib import Path
 
@@ -48,6 +51,35 @@ RUNTIME_DATA = ("index/paRY.db", "lexicon.json")
 
 def say(step: str) -> None:
     print(f"  {step}")
+
+
+def remove_tree(path: Path, attempts: int = 5) -> None:
+    """Delete a directory that a sync client may be holding open.
+
+    This repository lives under OneDrive, which keeps handles on files it is
+    uploading, so deleting the previous staging folder fails with a permission
+    error often enough to be worth handling rather than re-running the build.
+    Read-only attributes are cleared too, which is the other reason rmtree
+    refuses on Windows.
+    """
+    if not path.exists():
+        return
+
+    def unlock(function, target, _exception):
+        os.chmod(target, stat.S_IWRITE)
+        function(target)
+
+    for attempt in range(attempts):
+        try:
+            shutil.rmtree(path, onexc=unlock)
+            return
+        except PermissionError:
+            if attempt == attempts - 1:
+                raise SystemExit(
+                    f"cannot delete {path} — something is holding it open "
+                    "(OneDrive syncing, or a server still running from it)"
+                )
+            time.sleep(1.5)
 
 
 def freeze(skip: bool) -> Path:
@@ -110,8 +142,7 @@ def build(out_root: Path, skip_freeze: bool) -> Path:
 
     name = f"eTamil-IDE-{__version__}-{TARGET}"
     stage = out_root / name
-    if stage.exists():
-        shutil.rmtree(stage)
+    remove_tree(stage)
     stage.mkdir(parents=True)
 
     # --- the compiler and the standard library it needs to resolve imports ---
@@ -142,6 +173,8 @@ def build(out_root: Path, skip_freeze: bool) -> Path:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
     shutil.copytree(REPO / "web", pary_dir / "web")
+    # The launcher lives beside the server it starts.
+    shutil.copy2(REPO / "packaging" / "windows" / "start-ide.ps1", pary_dir / "start-ide.ps1")
 
     # --- the editor's half ---------------------------------------------------
     say("extensions and profile")
@@ -217,7 +250,7 @@ THE EDITOR IS NOT IN THIS PACKAGE
 
 AFTER INSTALLING
 
-  Start Menu -> "paRY server" starts the assistant, then open a .qmz file.
+  Start Menu -> "eTamil IDE" starts the assistant and opens the editor.
   Ctrl+Alt+I asks paRY to write code into the editor; F5 runs the file.
 
   paRY answers from the eTamil compiler and an index of the documentation.
