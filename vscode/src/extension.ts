@@ -23,12 +23,21 @@ import { InlineCompletions } from "./completion";
 import { DiagnosticRunner, ETAMIL, isEtamil } from "./diagnostics";
 import { ChatPanel, activeSource } from "./panel";
 
+/**
+ * The language extension, which already compiles on type using the local
+ * binary. Two extensions publishing the same compiler's errors would paint
+ * every mistake twice.
+ */
+const LANGUAGE_EXTENSION = "etamil.etamil-support";
+
 export function activate(context: vscode.ExtensionContext): void {
   const client = new ParyClient();
   const panel = new ChatPanel(context.extensionUri, client);
   const diagnostics = new DiagnosticRunner(client);
 
-  diagnostics.register(context);
+  if (shouldRunDiagnostics()) {
+    diagnostics.register(context);
+  }
 
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = "pary.checkServer";
@@ -99,6 +108,27 @@ export function activate(context: vscode.ExtensionContext): void {
 
 export function deactivate(): void {
   // The diagnostic collection and every listener are disposed by the context.
+}
+
+/**
+ * Stand down when the language extension is already doing this.
+ *
+ * `etamil-support` runs the compiler locally on type and publishes the same
+ * errors. Both of us reporting them means two squiggles and two hovers saying
+ * the same thing, and the person seeing it has no way to know why. Its version
+ * is the better one to keep, too: it does not need a server running.
+ *
+ * A setting the user has actually written down wins over this — `inspect`
+ * distinguishes a value someone chose from the manifest default.
+ */
+function shouldRunDiagnostics(): boolean {
+  const setting = vscode.workspace.getConfiguration("pary").inspect<boolean>("diagnostics.enabled");
+  const chosen =
+    setting?.globalValue ?? setting?.workspaceValue ?? setting?.workspaceFolderValue;
+  if (chosen !== undefined) {
+    return chosen;
+  }
+  return vscode.extensions.getExtension(LANGUAGE_EXTENSION) === undefined;
 }
 
 /**

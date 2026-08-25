@@ -1,0 +1,14 @@
+{
+  "files.associations": { "*.qmz": "etamil" },
+  "[etamil]": {
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+    "editor.wordWrap": "on",
+    "editor.fontLigatures": false
+  },
+  "editor.fontFamily": "Cascadia Mono, Consolas, 'Noto Sans Tamil', 'Nirmala UI', monospace",
+  "editor.unicodeHighlight.allowedLocales": { "ta": true },
+  "pary.server": "http://127.0.0.1:8900",
+  "pary.locale": "auto",
+  "etamil.checkOnType": true
+}

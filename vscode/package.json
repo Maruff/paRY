@@ -86,7 +86,7 @@
         "pary.diagnostics.enabled": {
           "type": "boolean",
           "default": true,
-          "description": "Compile eTamil files with the server as you type, and show what the compiler says."
+          "markdownDescription": "Compile eTamil files with the paRY server as you type. Left unset, paRY stands down when the `etamil.etamil-support` extension is installed, because that one already compiles on type using the local binary and two extensions reporting the same errors means two squiggles. Setting this explicitly overrides that."
         },
         "pary.diagnostics.delay": {
           "type": "number",

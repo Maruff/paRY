@@ -262,6 +262,38 @@ It contributes no grammar, keywords or hovers. `etamil-support` already
 generates those from `lexer.rs` so they cannot drift; duplicating them here
 would be the mistake that extension exists to correct.
 
+paRY also stands down from publishing diagnostics when `etamil-support` is
+installed, because that extension already compiles on type with the local
+binary — two extensions reporting the same compiler's errors means two
+squiggles on every mistake.
+
+**Installed and running here.** Both extensions are packaged and installed into
+VS Code (`etamil.etamil-support@0.4.0`, `etamil.pary@0.1.0`), and the server log
+shows the extension reaching `/health` on activation — and no `/diagnose`,
+which is the stand-down working.
+
+### Desktop IDE
+
+`desktop/` is **VSCodium** plus those two extensions plus a profile —
+[`desktop/README.md`](desktop/README.md) has the reasoning.
+
+```bash
+python desktop/provision.py --dry-run   # say what it would do
+python desktop/provision.py             # build, install, configure
+```
+
+The tempting alternative was a Tauri shell around the browser IDE. It would have
+meant writing a file tree, tab bar, search, source control, terminal, settings
+and an extension host to arrive at a worse version of something that exists.
+VSCodium has the same extension API — so the extension already written *is* the
+IDE's intelligence — and no telemetry or marketplace terms, which is what makes
+it installable somewhere that has to account for everything leaving its network.
+
+The provisioner is a guest in an existing configuration: it backs up
+`settings.json`, adds only the keys that are missing, never overwrites a value
+someone chose, and prints exactly what it did. Telemetry and update settings are
+applied to VSCodium only, never to the VS Code someone uses every day.
+
 ## Next
 
 The plan is four surfaces — web and Android chat, a VS Code extension, a
@@ -295,7 +327,8 @@ paRY/answer/           intent routing, and the answer itself
 paRY/serve/            the HTTP protocol every client shares
 web/                   the chat client, served by that server
 android/               the same client in a WebView — unbuilt, see its README
-vscode/                the editor extension — compiles, never run in an editor
+vscode/                the editor extension — installed and activating
+desktop/               VSCodium provisioning: the IDE surface
 docs/ARCHITECTURE.md   four surfaces, one core, and the build order
 data/                  everything generated — reproducible, and not committed
 ```

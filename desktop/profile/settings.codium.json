@@ -1,0 +1,6 @@
+{
+  "telemetry.telemetryLevel": "off",
+  "update.mode": "manual",
+  "extensions.autoCheckUpdates": false,
+  "workbench.startupEditor": "readme"
+}
