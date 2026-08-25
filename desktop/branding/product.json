@@ -1,0 +1,47 @@
+{
+  "//": "Overlay for a branded build of the vscode OSS source. Merge over the source's product.json before building. Written, never built — see build-branded.md.",
+
+  "nameShort": "eTamil",
+  "nameLong": "eTamil IDE",
+  "applicationName": "etamil-ide",
+  "dataFolderName": ".etamil-ide",
+  "serverApplicationName": "etamil-ide-server",
+  "serverDataFolderName": ".etamil-ide-server",
+  "urlProtocol": "etamil-ide",
+  "quality": "stable",
+
+  "win32MutexName": "etamilide",
+  "win32DirName": "eTamil IDE",
+  "win32NameVersion": "eTamil IDE",
+  "win32RegValueName": "eTamilIDE",
+  "win32AppUserModelId": "eTamil.eTamilIDE",
+  "win32ShellNameShort": "eTamil IDE",
+  "win32AppId": "{{9E3F5A21-7C4D-4B8E-A1F2-6D0C8B3E5417}",
+  "win32x64AppId": "{{1A7B4C63-2E9D-4F0A-B5C8-3D6E9F2A1B04}",
+  "win32UserAppId": "{{4C2E8B15-6A3F-4D97-8E20-B1F5C7A9D3E6}",
+  "win32x64UserAppId": "{{7D5A3F92-8B1C-46E0-9A4D-2F8E6C0B5A17}",
+  "darwinBundleIdentifier": "in.etamil.ide",
+  "linuxIconName": "etamil-ide",
+
+  "licenseName": "MIT",
+  "licenseUrl": "https://github.com/Maruff/paRY/blob/main/LICENSE",
+  "reportIssueUrl": "https://github.com/Maruff/paRY/issues",
+  "documentationUrl": "https://etamil.in/manual/",
+  "requestFeatureUrl": "https://github.com/Maruff/paRY/issues",
+
+  "//extensionsGallery": "Deliberately absent. With no gallery there is no marketplace to browse, and the extension list is exactly what the package shipped.",
+
+  "builtInExtensions": [],
+
+  "//builtInExtensions": "Populated by the build script from extensions.json: eTamil, paRY and the theme are copied into extensions/ as built-ins so they cannot be uninstalled by accident and do not appear as something a developer installed.",
+
+  "enableTelemetry": false,
+  "telemetryOptOutUrl": "",
+  "aiConfig": {},
+  "sendASmile": {},
+  "surveys": [],
+  "checksumFailMoreInfoUrl": "",
+
+  "//defaults": "Applied through the build's default settings rather than a user profile, so a fresh install already looks like the IDE.",
+  "configurationSync.store": null
+}

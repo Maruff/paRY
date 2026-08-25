@@ -64,6 +64,11 @@
       {
         "command": "pary.checkServer",
         "title": "paRY: Check the server"
+      },
+      {
+        "command": "pary.extensions",
+        "title": "eTamil: Languages you can turn on",
+        "icon": "$(extensions)"
       }
     ],
     "menus": {
@@ -118,6 +123,11 @@
           ],
           "default": "auto",
           "description": "Which language paRY answers in. Auto matches the language of the question."
+        },
+        "pary.extensionsPath": {
+          "type": "string",
+          "default": "",
+          "markdownDescription": "Folder holding the optional extensions that ship with the IDE, and their `extensions.json`. Written by the installer. There is no marketplace in a branded build, so this is where 'install' comes from."
         }
       }
     },

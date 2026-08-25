@@ -1,0 +1,20 @@
+{
+  "name": "etamil-theme",
+  "displayName": "eTamil",
+  "description": "The eTamil colour theme: the navy and blue of the eTamil mark.",
+  "version": "0.1.0",
+  "publisher": "etamil",
+  "license": "MIT",
+  "icon": "images/icon.png",
+  "engines": { "vscode": "^1.84.0" },
+  "categories": ["Themes"],
+  "contributes": {
+    "themes": [
+      {
+        "label": "eTamil Dark",
+        "uiTheme": "vs-dark",
+        "path": "./themes/etamil-dark-color-theme.json"
+      }
+    ]
+  }
+}

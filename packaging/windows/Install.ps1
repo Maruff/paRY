@@ -169,6 +169,22 @@ function Merge-Keybindings($target, $additions) {
     return @($fresh | ForEach-Object { "$($_.key) -> $($_.command)" })
 }
 
+# An upgrade cannot replace files the assistant is holding open, and it is
+# holding its own open whenever it is running — which, after the IDE shortcut
+# has been used once, it usually is. Stopping only ours: a pary-server running
+# from somewhere else is somebody else's.
+function Stop-ParyServer($installDir) {
+    $running = @(
+        Get-Process -Name 'pary-server' -ErrorAction SilentlyContinue |
+            Where-Object { $_.Path -and $_.Path.StartsWith($installDir, [System.StringComparison]::OrdinalIgnoreCase) }
+    )
+    foreach ($process in $running) { Stop-Process -Id $process.Id -Force }
+    if ($running.Count -gt 0) {
+        Write-Step "stopped the assistant ($($running.Count) process) so it can be replaced"
+        Start-Sleep -Milliseconds 800
+    }
+}
+
 function Add-ToUserPath($directory) {
     $current = [Environment]::GetEnvironmentVariable('Path', 'User')
     $entries = @()
@@ -203,6 +219,7 @@ $startMenu = Join-Path $env:APPDATA 'Microsoft\Windows\Start Menu\Programs\eTami
 # ---------------------------------------------------------------- uninstall --
 if ($Uninstall) {
     Write-Host "Removing the eTamil IDE"
+    Stop-ParyServer $InstallDir
     if (Test-Path $InstallDir) {
         Remove-Item $InstallDir -Recurse -Force
         Write-Step "deleted $InstallDir"
@@ -227,12 +244,24 @@ foreach ($required in @('compiler', 'pary', 'extensions', 'profile')) {
     }
 }
 
+Stop-ParyServer $InstallDir
+
 New-Item -ItemType Directory -Force $InstallDir | Out-Null
 foreach ($part in @('compiler', 'pary')) {
     $destination = Join-Path $InstallDir $part
     if (Test-Path $destination) { Remove-Item $destination -Recurse -Force }
     Copy-Item (Join-Path $payload $part) $destination -Recurse
     Write-Step "$part -> $destination"
+}
+
+# The four optional extensions are offered from inside the IDE rather than a
+# marketplace, so they have to sit somewhere the editor can reach.
+$optionalSource = Join-Path $payload 'extensions-optional'
+if (Test-Path $optionalSource) {
+    $optionalDir = Join-Path $InstallDir 'extensions-optional'
+    if (Test-Path $optionalDir) { Remove-Item $optionalDir -Recurse -Force }
+    Copy-Item $optionalSource $optionalDir -Recurse
+    Write-Step "optional extensions -> $optionalDir"
 }
 
 $compilerDir = Join-Path $InstallDir 'compiler'
@@ -320,6 +349,10 @@ if ($editorName -eq 'codium') {
 }
 $settings | Add-Member -NotePropertyName 'etamil.compilerPath' `
     -NotePropertyValue (Join-Path $compilerDir 'etamil.exe') -Force
+if (Test-Path (Join-Path $InstallDir 'extensions-optional')) {
+    $settings | Add-Member -NotePropertyName 'pary.extensionsPath' `
+        -NotePropertyValue (Join-Path $InstallDir 'extensions-optional') -Force
+}
 
 $addedSettings = Merge-JsonFile (Join-Path $userDir 'settings.json') $settings
 $keybindings = Get-Content (Join-Path $payload 'profile\keybindings.json') -Raw | ConvertFrom-Json

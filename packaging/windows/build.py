@@ -182,6 +182,33 @@ def build(out_root: Path, skip_freeze: bool) -> Path:
     extensions.mkdir()
     shutil.copy2(vsix(config.ETAMIL_ROOT / "eTamil_Code", "etamil-support"), extensions)
     shutil.copy2(vsix(REPO / "vscode", "pary"), extensions)
+    shutil.copy2(vsix(REPO / "desktop" / "branding" / "theme", "etamil-theme"), extensions)
+
+    # The GitHub extension installs with the IDE; the other four are offered
+    # from inside it. There is no marketplace, so both live in the package.
+    branding = REPO / "desktop" / "branding"
+    catalogue = json.loads((branding / "extensions.json").read_text(encoding="utf-8"))
+    fetched = REPO / "build" / "extensions"
+    optional = stage / "extensions-optional"
+    optional.mkdir()
+    shutil.copy2(branding / "extensions.json", optional / "extensions.json")
+
+    for group, destination in (("installed", extensions), ("optional", optional)):
+        for entry in catalogue[group]:
+            if entry["source"] != "openvsx":
+                continue
+            # Not `name`: that is the package's own name, and shadowing it
+            # renamed the zip after the last extension copied.
+            publisher, extension = entry["id"].split(".", 1)
+            package = fetched / f"{publisher}.{extension}-{entry['version']}.vsix"
+            if not package.exists():
+                raise SystemExit(
+                    f"{package.name} is missing — run "
+                    "python desktop/branding/fetch_extensions.py first"
+                )
+            shutil.copy2(package, destination)
+
+    shutil.copytree(branding / "icons", stage / "branding")
     shutil.copytree(REPO / "desktop" / "profile", stage / "profile")
 
     shutil.copy2(REPO / "packaging" / "windows" / "Install.ps1", stage / "Install.ps1")
@@ -195,6 +222,9 @@ def build(out_root: Path, skip_freeze: bool) -> Path:
             [str(compiler_dir / "etamil.exe"), "-V"], capture_output=True
         ).stdout.decode("utf-8", errors="replace").strip(),
         "extensions": sorted(path.name for path in extensions.iterdir()),
+        "optional_extensions": sorted(
+            path.name for path in (stage / "extensions-optional").iterdir() if path.suffix == ".vsix"
+        ),
         "index_chunks": chunk_count(pary_dir / "data" / "index" / "paRY.db"),
     }
     (stage / "manifest.json").write_text(

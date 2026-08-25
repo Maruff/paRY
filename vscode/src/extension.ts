@@ -21,6 +21,7 @@ import * as vscode from "vscode";
 import { ParyClient } from "./client";
 import { InlineCompletions } from "./completion";
 import { DiagnosticRunner, ETAMIL, isEtamil } from "./diagnostics";
+import { showExtensions } from "./extensions";
 import { trackEditors } from "./editors";
 import { ChatPanel, activeSource } from "./panel";
 
@@ -98,6 +99,8 @@ export function activate(context: vscode.ExtensionContext): void {
         diagnostics.run(editor.document),
       ]);
     }),
+
+    vscode.commands.registerCommand("pary.extensions", showExtensions),
 
     vscode.commands.registerCommand("pary.checkServer", async () => {
       try {

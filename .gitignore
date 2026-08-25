@@ -20,3 +20,4 @@ __pycache__/
 
 # Packaging output: the frozen server, the staged payload and the zip.
 /build/
+/desktop/branding/theme/*.vsix

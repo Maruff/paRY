@@ -1,0 +1,199 @@
+{
+  "name": "eTamil Dark",
+  "type": "dark",
+  "semanticHighlighting": true,
+  "colors": {
+    "editor.background": "#0A2240",
+    "editor.foreground": "#E8EEF7",
+    "editorCursor.foreground": "#3B82F6",
+    "editor.lineHighlightBackground": "#123055",
+    "editor.selectionBackground": "#1D4E8F",
+    "editor.selectionHighlightBackground": "#1D3A5F",
+    "editor.wordHighlightBackground": "#1D3A5F",
+    "editor.findMatchBackground": "#1E9BE955",
+    "editor.findMatchHighlightBackground": "#1E9BE933",
+    "editorLineNumber.foreground": "#4C6285",
+    "editorLineNumber.activeForeground": "#1E9BE9",
+    "editorIndentGuide.background1": "#1D3A5F",
+    "editorIndentGuide.activeBackground1": "#3B82F6",
+    "editorWhitespace.foreground": "#1D3A5F",
+    "editorRuler.foreground": "#1D3A5F",
+    "editorBracketMatch.background": "#1D4E8F",
+    "editorBracketMatch.border": "#3B82F6",
+
+    "editorGutter.addedBackground": "#4ADE80",
+    "editorGutter.modifiedBackground": "#1E9BE9",
+    "editorGutter.deletedBackground": "#F87171",
+    "editorError.foreground": "#F87171",
+    "editorWarning.foreground": "#FBBF24",
+    "editorInfo.foreground": "#1E9BE9",
+
+    "editorWidget.background": "#071A31",
+    "editorWidget.border": "#1D3A5F",
+    "editorSuggestWidget.background": "#071A31",
+    "editorSuggestWidget.border": "#1D3A5F",
+    "editorSuggestWidget.selectedBackground": "#1D4E8F",
+    "editorHoverWidget.background": "#071A31",
+    "editorHoverWidget.border": "#1D3A5F",
+
+    "activityBar.background": "#071A31",
+    "activityBar.foreground": "#FFFFFF",
+    "activityBar.inactiveForeground": "#7C90AB",
+    "activityBar.border": "#1D3A5F",
+    "activityBarBadge.background": "#3B82F6",
+    "activityBarBadge.foreground": "#FFFFFF",
+
+    "sideBar.background": "#071A31",
+    "sideBar.foreground": "#C9D6E5",
+    "sideBar.border": "#1D3A5F",
+    "sideBarTitle.foreground": "#FFFFFF",
+    "sideBarSectionHeader.background": "#0A2240",
+    "sideBarSectionHeader.foreground": "#C9D6E5",
+
+    "titleBar.activeBackground": "#071A31",
+    "titleBar.activeForeground": "#FFFFFF",
+    "titleBar.inactiveBackground": "#071A31",
+    "titleBar.inactiveForeground": "#7C90AB",
+    "titleBar.border": "#1D3A5F",
+
+    "statusBar.background": "#3B82F6",
+    "statusBar.foreground": "#FFFFFF",
+    "statusBar.border": "#3B82F6",
+    "statusBar.noFolderBackground": "#123055",
+    "statusBar.debuggingBackground": "#1E9BE9",
+    "statusBarItem.remoteBackground": "#071A31",
+    "statusBarItem.hoverBackground": "#1E9BE9",
+
+    "tab.activeBackground": "#0A2240",
+    "tab.activeForeground": "#FFFFFF",
+    "tab.activeBorderTop": "#3B82F6",
+    "tab.inactiveBackground": "#071A31",
+    "tab.inactiveForeground": "#7C90AB",
+    "tab.border": "#1D3A5F",
+    "editorGroupHeader.tabsBackground": "#071A31",
+    "editorGroupHeader.tabsBorder": "#1D3A5F",
+    "editorGroup.border": "#1D3A5F",
+
+    "panel.background": "#071A31",
+    "panel.border": "#1D3A5F",
+    "panelTitle.activeForeground": "#FFFFFF",
+    "panelTitle.activeBorder": "#3B82F6",
+    "panelTitle.inactiveForeground": "#7C90AB",
+
+    "terminal.background": "#071A31",
+    "terminal.foreground": "#E8EEF7",
+    "terminal.ansiBlue": "#3B82F6",
+    "terminal.ansiBrightBlue": "#1E9BE9",
+    "terminal.ansiCyan": "#1E9BE9",
+    "terminal.ansiGreen": "#4ADE80",
+    "terminal.ansiYellow": "#FBBF24",
+    "terminal.ansiRed": "#F87171",
+    "terminal.ansiWhite": "#E8EEF7",
+
+    "button.background": "#3B82F6",
+    "button.foreground": "#FFFFFF",
+    "button.hoverBackground": "#1E9BE9",
+    "button.secondaryBackground": "#123055",
+    "button.secondaryForeground": "#E8EEF7",
+
+    "input.background": "#071A31",
+    "input.foreground": "#E8EEF7",
+    "input.border": "#1D3A5F",
+    "input.placeholderForeground": "#7C90AB",
+    "inputOption.activeBorder": "#3B82F6",
+    "dropdown.background": "#071A31",
+    "dropdown.border": "#1D3A5F",
+    "dropdown.foreground": "#E8EEF7",
+
+    "list.activeSelectionBackground": "#1D4E8F",
+    "list.activeSelectionForeground": "#FFFFFF",
+    "list.inactiveSelectionBackground": "#123055",
+    "list.hoverBackground": "#123055",
+    "list.highlightForeground": "#1E9BE9",
+    "list.errorForeground": "#F87171",
+    "list.warningForeground": "#FBBF24",
+
+    "badge.background": "#3B82F6",
+    "badge.foreground": "#FFFFFF",
+    "progressBar.background": "#1E9BE9",
+    "focusBorder": "#3B82F6",
+    "foreground": "#E8EEF7",
+    "descriptionForeground": "#7C90AB",
+    "errorForeground": "#F87171",
+    "textLink.foreground": "#1E9BE9",
+    "textLink.activeForeground": "#3B82F6",
+    "textCodeBlock.background": "#071A31",
+    "widget.border": "#1D3A5F",
+    "scrollbarSlider.background": "#1D3A5F80",
+    "scrollbarSlider.hoverBackground": "#1D4E8FAA",
+    "scrollbarSlider.activeBackground": "#3B82F6AA",
+
+    "menu.background": "#071A31",
+    "menu.foreground": "#E8EEF7",
+    "menu.selectionBackground": "#1D4E8F",
+    "menubar.selectionBackground": "#123055",
+    "quickInput.background": "#071A31",
+    "quickInputList.focusBackground": "#1D4E8F",
+    "notifications.background": "#071A31",
+    "notifications.border": "#1D3A5F",
+
+    "peekViewEditor.background": "#071A31",
+    "peekViewResult.background": "#071A31",
+    "peekViewTitle.background": "#123055",
+    "diffEditor.insertedTextBackground": "#4ADE8022",
+    "diffEditor.removedTextBackground": "#F8717122",
+
+    "gitDecoration.modifiedResourceForeground": "#1E9BE9",
+    "gitDecoration.addedResourceForeground": "#4ADE80",
+    "gitDecoration.deletedResourceForeground": "#F87171",
+    "gitDecoration.untrackedResourceForeground": "#4ADE80",
+    "gitDecoration.ignoredResourceForeground": "#4C6285"
+  },
+  "tokenColors": [
+    {
+      "name": "Comment",
+      "scope": ["comment", "punctuation.definition.comment"],
+      "settings": { "foreground": "#7C90AB", "fontStyle": "italic" }
+    },
+    {
+      "name": "Keyword — the Tamil words the language is made of",
+      "scope": ["keyword", "keyword.control", "storage.type", "storage.modifier"],
+      "settings": { "foreground": "#1E9BE9" }
+    },
+    {
+      "name": "Function",
+      "scope": ["entity.name.function", "support.function", "meta.function-call"],
+      "settings": { "foreground": "#FFFFFF" }
+    },
+    {
+      "name": "String",
+      "scope": ["string", "punctuation.definition.string"],
+      "settings": { "foreground": "#4ADE80" }
+    },
+    {
+      "name": "Number, and the percentages a tax rate is written as",
+      "scope": ["constant.numeric", "constant.language", "keyword.other.unit"],
+      "settings": { "foreground": "#FBBF24" }
+    },
+    {
+      "name": "Variable",
+      "scope": ["variable", "variable.other", "meta.definition.variable"],
+      "settings": { "foreground": "#E8EEF7" }
+    },
+    {
+      "name": "Type",
+      "scope": ["entity.name.type", "support.type", "support.class"],
+      "settings": { "foreground": "#3B82F6" }
+    },
+    {
+      "name": "Operator and punctuation",
+      "scope": ["keyword.operator", "punctuation"],
+      "settings": { "foreground": "#C9D6E5" }
+    },
+    {
+      "name": "Invalid",
+      "scope": ["invalid", "invalid.illegal"],
+      "settings": { "foreground": "#F87171" }
+    }
+  ]
+}

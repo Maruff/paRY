@@ -1,0 +1,82 @@
+{
+  "comment": [
+    "The whole extension world of the eTamil IDE. There is no marketplace in the",
+    "branded build, so what is listed here is what exists — three installed with",
+    "the IDE and four the developer can turn on.",
+    "",
+    "Everything is fetched from Open VSX rather than Microsoft's gallery, whose",
+    "terms do not cover non-Microsoft builds and which an air-gapped bank could",
+    "not reach anyway. Versions are pinned so a build is reproducible; refresh",
+    "them deliberately with `python desktop/branding/fetch_extensions.py --latest`."
+  ],
+  "installed": [
+    {
+      "id": "etamil.etamil-support",
+      "title": "eTamil",
+      "role": "language",
+      "source": "bundled",
+      "why": "The language itself: grammar, snippets, hovers, run, compile-on-type — all generated from lexer.rs."
+    },
+    {
+      "id": "etamil.pary",
+      "title": "paRY",
+      "role": "assistant",
+      "source": "bundled",
+      "why": "The assistant. Its chat opens on the right."
+    },
+    {
+      "id": "etamil.etamil-theme",
+      "title": "eTamil Dark",
+      "role": "theme",
+      "source": "bundled",
+      "why": "The IDE's own colours. A built-in in the branded build, so it does not appear as something a developer installed."
+    },
+    {
+      "id": "GitHub.vscode-pull-request-github",
+      "title": "GitHub",
+      "role": "github",
+      "source": "openvsx",
+      "version": "0.162.0",
+      "license": "MIT",
+      "why": "Pull requests and issues in the editor. The GitHub extension people mean when they say GitHub."
+    }
+  ],
+  "optional": [
+    {
+      "id": "rust-lang.rust-analyzer",
+      "title": "Rust",
+      "role": "rust",
+      "source": "openvsx",
+      "version": "0.4.3026",
+      "license": "MIT OR Apache-2.0",
+      "why": "The Rust language server. The eTamil compiler is Rust, so this is for working on the language itself."
+    },
+    {
+      "id": "ms-python.python",
+      "title": "Python",
+      "role": "python",
+      "source": "openvsx",
+      "version": "2026.4.0",
+      "license": "MIT",
+      "why": "The canonical Python extension, and it is on Open VSX under MIT."
+    },
+    {
+      "id": "dbaeumer.vscode-eslint",
+      "title": "Node.js",
+      "role": "node",
+      "source": "openvsx",
+      "version": "3.0.34",
+      "license": "MIT",
+      "why": "ESLint. Node debugging is already built into the editor, so the useful thing to add for JavaScript work is the linter rather than a runtime extension."
+    },
+    {
+      "id": "dsznajder.es7-react-js-snippets",
+      "title": "React",
+      "role": "react",
+      "source": "openvsx",
+      "version": "4.4.3",
+      "license": "MIT",
+      "why": "React snippets for JSX and hooks."
+    }
+  ]
+}
