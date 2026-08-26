@@ -162,6 +162,49 @@ cited rather than pasted, because half a program does not compile. When nothing
 answers, paRY says so instead of composing something plausible — that invariant
 is a test, run over every intent.
 
+### Teaching it
+
+paRY has no model, so it is educated by adding files rather than by training.
+Two kinds, in `knowledge/`, and both take effect on the next `index.build`.
+
+**Recipes** — `knowledge/recipes/*.toml`. The corpus had 77 programs named
+things like `vatti.qmz` and not one document saying *"how do I write a row to a
+CSV file"*, so that question found nothing: retrieval can only match words that
+are present. A recipe carries the question in the words a developer would use,
+in **English, Tamil and the romanized spelling**, next to a program that answers
+it. Ten so far, and every one is compiled before it is indexed — a recipe that
+stops compiling is dropped rather than served.
+
+```toml
+title = "Write a row to a CSV file"
+tamil = "CSV கோப்பில் ஒரு வரியை எழுது"
+asks  = ["how do I write a row to a CSV file", "append to a csv", "CSV கோப்பில் எழுது"]
+explain = "`தரவுரை_எழுது` appends one row…"
+code = '''தரவுரை_எழுது "inventory.csv", "product_id,name,stock";'''
+```
+
+**Guidance** — `knowledge/guidance.json`. A compiler message plus a shape in the
+source, and the sentence that says what to do. Five rules. On top of them paRY
+computes one for itself: when the parser refuses a name, it asks the compiler's
+own tables whether that name is a keyword — *"expected a statement, found
+'உடல்'"* means nothing until you know `உடல்` is the Body keyword.
+
+**All three spellings are one word.** A question asked as `accu`, `_print` or
+`அச்சு` finds the same thing, because the expansion comes from the compiler's
+tables rather than a transliterator that could disagree with the language.
+
+```
+$ python -m paRY.answer "CSV கோப்பில் எழுது"      → recipe, verified
+$ python -m paRY.answer "ceyal eppati ezuquvatu"  → செயல், the keyword
+$ python -m paRY.answer "how do I return json"    → recipe, verified
+```
+
+**The index now compiles what it claims compiles.** Source files used to be
+indexed as compiling because they were in the repository. They were never
+checked, and **only 32 of 77 actually compile as quoted text** — the rest have
+`../../` imports that resolve only from their own directory. Those are still
+indexed and cited; they are no longer quoted as answers.
+
 ### The server
 
 The one protocol all four surfaces speak. `pip install -e ".[serve]"`, then
@@ -377,6 +420,8 @@ paRY/lexicon.py        keywords, builtins and nUlakam, read out of the compiler
 paRY/corpus/collect.py the corpus, with provenance and content hashes
 paRY/verify/oracle.py  the compiler as a judge
 paRY/tokenizer/        training and measurement
+paRY/knowledge.py      recipes and guidance — how paRY is taught
+knowledge/             the taught files themselves
 paRY/index/            the FTS5 retrieval index, and asking it questions
 paRY/answer/           intent routing, and the answer itself
 paRY/serve/            the HTTP protocol every client shares

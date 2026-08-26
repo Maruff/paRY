@@ -1,0 +1,17 @@
+title = "Ask for a number and print something back"
+tamil = "எண்ணைக் கேட்டு பதிலை அச்சிடு"
+tags = ["basics", "input", "print"]
+asks = [
+  "how do I print something",
+  "read input from the user",
+  "how do I ask the user for a number",
+  "உள்ளீடு படித்து அச்சிடு",
+]
+explain = "`அச்சு` prints. `உள்ளிடு` reads one line from standard input into a name you have already declared with its type."
+code = '''
+எண் வருவாய்;
+அச்சு "Enter income: ";
+உள்ளிடு வருவாய்;
+அச்சு "You entered:";
+அச்சு வருவாய்;
+'''

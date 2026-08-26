@@ -1,0 +1,21 @@
+title = "Branch on a condition"
+tamil = "நிபந்தனையின் அடிப்படையில் கிளை"
+tags = ["basics", "control-flow"]
+asks = [
+  "how do I write an if statement",
+  "if else in eTamil",
+  "conditional branch",
+  "நிபந்தனை எப்படி எழுதுவது",
+]
+explain = "The condition is parenthesised and `எனில்` follows it. `இன்றேல்` is the other branch. There is no `else if` keyword — nest, or return early."
+code = '''
+வருவாய் = 950000;
+
+(வருவாய் > 800000) எனில் {
+    அச்சு "High tax bracket";
+    அச்சு (வருவாய் - 800000) * 20%;
+}
+இன்றேல் {
+    அச்சு "Low tax bracket";
+}
+'''

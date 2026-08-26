@@ -1,0 +1,20 @@
+title = "Loop over an array or a record"
+tamil = "அணி அல்லது பதிவேட்டின் மேல் சுற்று"
+tags = ["basics", "arrays", "loop"]
+asks = [
+  "how do I loop over an array",
+  "iterate a list",
+  "for each item in eTamil",
+  "அணியை எப்படி சுற்றுவது",
+]
+explain = "`ஒவ்வொரு … இல்` walks arrays, records and strings. A record yields its fields, and a string its letters — not its bytes."
+code = '''
+விலைகள் = [120, 340, 90];
+மொத்தம் = 0;
+
+ஒவ்வொரு விலை இல் விலைகள் {
+    மொத்தம் = மொத்தம் + விலை;
+}
+
+அச்சு மொத்தம்;
+'''

@@ -1,0 +1,17 @@
+title = "Use a function from the standard library"
+tamil = "நூலகத்திலிருந்து ஒரு செயலைப் பயன்படுத்து"
+tags = ["modules", "money", "stdlib"]
+asks = [
+  "how do I import a module",
+  "use nUlakam",
+  "format money in rupees",
+  "நூலகத்தை எப்படி இறக்குவது",
+]
+explain = "`இறக்கு` takes a path resolved beside the file, then along `ETAMIL_PATH`. `ரூபாய்` formats an amount with Indian digit grouping; `சதவீதம்` takes a percentage of one."
+code = '''
+இறக்கு "nUlakam/paNam.qmz";
+
+தொகை = 1250000;
+அச்சு ரூபாய்(தொகை);
+அச்சு ரூபாய்(சதவீதம்(தொகை, 18));
+'''

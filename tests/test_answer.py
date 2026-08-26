@@ -33,17 +33,17 @@ def test_a_name_inside_a_string_is_not_a_use_of_it():
 
 
 def test_the_declaration_mistake_is_recognised_by_name():
-    notes = engine._guidance("expected '=', found 'x'", "மாறி x = 5;", "en")
+    notes = engine._guidance("expected '=', found 'x'", "மாறி x = 5;", "en", {})
     assert any("not statement prefixes" in note for note in notes)
 
 
 def test_guidance_needs_both_halves_to_match():
     """The same parse error without மாறி is a different mistake."""
-    assert engine._guidance("expected '=', found 'x'", "செயல் f() {}", "en") == []
+    assert engine._guidance("expected '=', found 'x'", "செயல் f() {}", "en", {}) == []
 
 
 def test_guidance_speaks_the_answer_language():
-    (note,) = engine._guidance("cannot open module 'x'", "", "ta")
+    (note,) = engine._guidance("cannot open module 'x'", "", "ta", {})
     assert "ETAMIL_PATH" in note and "இறக்கு" in note
 
 

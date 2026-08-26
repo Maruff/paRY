@@ -1,0 +1,43 @@
+[
+  {
+    "id": "declaration-prefix",
+    "when": {
+      "error": "expected '='",
+      "source": "\\b(மாறி|நிலை|mARi|nilY)\\s"
+    },
+    "en": "`மாறி` and `நிலை` are tokens, but they are not statement prefixes. eTamil assigns with a bare name: `x = 5;`, not `மாறி x = 5;`.",
+    "ta": "`மாறி`, `நிலை` ஆகியவை சொற்கள்தான், ஆனால் அறிவிப்பின் தொடக்கம் அல்ல. eTamil இல் பெயரை நேரடியாகவே எழுதுங்கள்: `x = 5;`, `மாறி x = 5;` அல்ல."
+  },
+  {
+    "id": "module-not-found",
+    "when": {
+      "error": "cannot open module"
+    },
+    "en": "An import resolves beside the importing file first, then along `ETAMIL_PATH`, then next to the compiler. Source typed into a chat has no file to sit beside, so give the path as it is written from the eTamil root and put that root on `ETAMIL_PATH`.",
+    "ta": "`இறக்கு` முதலில் கோப்புக்கு அருகில், பிறகு `ETAMIL_PATH` வழியில், பிறகு தொகுப்பிக்கு அருகில் தேடும். உரையாடலில் எழுதிய நிரலுக்கு அருகில் கோப்பு இல்லை — எனவே eTamil வேரிலிருந்து பாதையைத் தந்து, அந்த வேரை `ETAMIL_PATH` இல் வையுங்கள்."
+  },
+  {
+    "id": "json-text-statement",
+    "when": {
+      "source": "ஜேசான்_உரை"
+    },
+    "en": "`ஜேசான்_உரை` parses but the VM refuses it. Build the body with `ஜேசான்_ஆக்கு` and send it with `பதில்`.",
+    "ta": "`ஜேசான்_உரை` பாகுபடும், ஆனால் VM அதை ஏற்காது. `ஜேசான்_ஆக்கு` கொண்டு உடலை உருவாக்கி, `பதில்` கொண்டு அனுப்புங்கள்."
+  },
+  {
+    "id": "missing-semicolon",
+    "when": {
+      "error": "expected ';'"
+    },
+    "en": "Every statement ends with a semicolon, including the last one in a block.",
+    "ta": "ஒவ்வொரு கூற்றும் அரைப்புள்ளியில் முடிய வேண்டும் — தொகுதியின் கடைசி கூற்றும் சேர்த்து."
+  },
+  {
+    "id": "condition-parentheses",
+    "when": {
+      "error": "எனில்|enil"
+    },
+    "en": "A condition is parenthesised and the keyword follows it: `(வருவாய் > 800000) எனில் { … }`, with `இன்றேல் { … }` for the other branch.",
+    "ta": "நிபந்தனை அடைப்புக்குள், சொல் அதன் பின்: `(வருவாய் > 800000) எனில் { … }`; மற்ற வழிக்கு `இன்றேல் { … }`."
+  }
+]

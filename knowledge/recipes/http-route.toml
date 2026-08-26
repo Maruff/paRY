@@ -1,0 +1,19 @@
+title = "Serve an HTTP route"
+tamil = "ஒரு HTTP வழியை வழங்கு"
+tags = ["http", "server", "api"]
+asks = [
+  "how do I add an http route",
+  "serve a GET endpoint",
+  "rest api route with a path parameter",
+  "HTTP வழி எப்படி எழுதுவது",
+]
+explain = "`வழி` takes a method and a path, and `பதில்` sends status and body. Run the file with `--server` or `--async`; `:id` in a path is a parameter."
+code = '''
+வழி பெறு, "/api/health" {
+    பதில் 200, "ok";
+}
+
+வழி பெறு, "/api/kaNakku/:id" {
+    பதில் 200, "account " & request_params.id;
+}
+'''

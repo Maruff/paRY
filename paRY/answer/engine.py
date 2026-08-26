@@ -30,7 +30,7 @@ import sqlite3
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
-from .. import lexicon
+from .. import knowledge, lexicon
 from ..index import search
 from ..verify import oracle
 from .phrases import detect_locale, say
@@ -70,51 +70,32 @@ class Answer:
         return asdict(self)
 
 
-@dataclass(frozen=True)
-class Guidance:
-    """A mistake worth recognising by name, rather than only quoting the compiler."""
+def _guidance(error: str, source: str, locale: str, table: dict[str, dict]) -> list[str]:
+    """Named mistakes, plus one paRY works out for itself.
 
-    error: re.Pattern | None
-    source: re.Pattern | None
-    en: str
-    ta: str
+    The rules come from `knowledge/guidance.json` — adding one is editing a
+    file. The computed one is worth more than any of them: when the parser
+    refuses a name, ask the compiler's own tables whether that name is a
+    keyword, because "expected a statement, found 'உடல்'" means nothing until
+    you know உடல் is the Body keyword and cannot be a variable.
+    """
+    notes = [rule.text(locale) for rule in knowledge.load_guidance() if rule.matches(error, source)]
 
-
-# Three, each one paid for. The first is the mistake the brief singles out as
-# easiest to make from reading the keyword list; the second cost a quarter of
-# the documented examples in this repository's own first oracle run; the third
-# is a statement the parser accepts and the VM refuses, so the compiler's own
-# message arrives later than the question does.
-GUIDANCE: tuple[Guidance, ...] = (
-    Guidance(
-        error=re.compile(r"expected '='"),
-        source=re.compile(r"\b(மாறி|நிலை|mARi|nilY)\s"),
-        en="`மாறி` and `நிலை` are tokens, but they are not statement prefixes. "
-           "eTamil assigns with a bare name: `x = 5;`, not `மாறி x = 5;`.",
-        ta="`மாறி`, `நிலை` ஆகியவை சொற்கள்தான், ஆனால் அறிவிப்பின் தொடக்கம் அல்ல. "
-           "eTamil இல் பெயரை நேரடியாகவே எழுதுங்கள்: `x = 5;`, `மாறி x = 5;` அல்ல.",
-    ),
-    Guidance(
-        error=re.compile(r"cannot open module"),
-        source=None,
-        en="An import resolves beside the importing file first, then along "
-           "`ETAMIL_PATH`, then next to the compiler. Source typed into a chat "
-           "has no file to sit beside, so give the path as it is written from "
-           "the eTamil root and put that root on `ETAMIL_PATH`.",
-        ta="`இறக்கு` முதலில் கோப்புக்கு அருகில், பிறகு `ETAMIL_PATH` வழியில், "
-           "பிறகு தொகுப்பிக்கு அருகில் தேடும். உரையாடலில் எழுதிய நிரலுக்கு அருகில் "
-           "கோப்பு இல்லை — எனவே eTamil வேரிலிருந்து பாதையைத் தந்து, அந்த வேரை "
-           "`ETAMIL_PATH` இல் வையுங்கள்.",
-    ),
-    Guidance(
-        error=None,
-        source=re.compile(r"ஜேசான்_உரை"),
-        en="`ஜேசான்_உரை` parses but the VM refuses it. Build the body with "
-           "`ஜேசான்_ஆக்கு` and send it with `பதில்`.",
-        ta="`ஜேசான்_உரை` பாகுபடும், ஆனால் VM அதை ஏற்காது. `ஜேசான்_ஆக்கு` கொண்டு "
-           "உடலை உருவாக்கி, `பதில்` கொண்டு அனுப்புங்கள்.",
-    ),
-)
+    refused = re.search(r"found '([^']+)'", error)
+    if refused:
+        entry = table.get(refused.group(1))
+        if entry:
+            name = refused.group(1)
+            sort = entry["sort"]
+            where = entry.get("section") or entry.get("module") or ""
+            notes.append(
+                f"`{name}` is a {sort}{f' in the {where} group' if where else ''}, "
+                "so it cannot be used as a name. Choose another."
+                if locale != "ta"
+                else f"`{name}` என்பது ஒரு {sort} — எனவே அதைப் பெயராகப் "
+                "பயன்படுத்த முடியாது. வேறு பெயரைத் தேர்வு செய்யுங்கள்."
+            )
+    return notes
 
 
 def _symbol_table() -> dict[str, dict]:
@@ -139,19 +120,6 @@ def _named_symbol(question: str, table: dict[str, dict]) -> dict | None:
     if not found:
         return None
     return table[max(found, key=len)]
-
-
-def _guidance(error: str, source: str, locale: str) -> list[str]:
-    notes = []
-    for rule in GUIDANCE:
-        if rule.error and not rule.error.search(error):
-            continue
-        if rule.source and not rule.source.search(source):
-            continue
-        if rule.error is None and rule.source is None:
-            continue
-        notes.append(rule.ta if locale == "ta" else rule.en)
-    return notes
 
 
 def _usable_code(hits: list[search.Hit]) -> search.Hit | None:
@@ -181,7 +149,7 @@ def _diagnose(source: str, locale: str) -> Answer:
     lines = [f"### {say('why_not_compile', locale)}", ""]
     for diagnostic in result.diagnostics:
         lines.append(f"- {diagnostic.raw}")
-    notes = _guidance(result.first_error, source, locale)
+    notes = _guidance(result.first_error, source, locale, _symbol_table())
     if notes:
         lines += ["", f"### {say('the_fix', locale)}", ""]
         lines += [f"- {note}" for note in notes]
@@ -217,7 +185,7 @@ def _symbol(entry: dict, connection: sqlite3.Connection, locale: str) -> Answer:
     usable = _usable_code(hits)
     code = None
     if usable:
-        code = usable.body
+        code = usable.code
         lines += ["", f"### {say('used_in', locale)}", "", f"`{usable.title}` ✓ {say('compiles', locale)}"]
 
     return Answer(
@@ -272,13 +240,40 @@ def _explain(source: str, table: dict[str, dict], locale: str) -> Answer:
     )
 
 
-def _howto(question: str, connection: sqlite3.Connection, locale: str) -> Answer:
-    hits = search.search(connection, question, limit=8)
+def _recipe(hit: search.Hit, locale: str) -> Answer:
+    """A taught task: the explanation, then the program, which compiles.
+
+    The chunk's body is the explanation and the code separated by a blank line,
+    which is how the index stored it. `code_compiles` is not a guess: a recipe
+    that stops compiling is refused at index time and never becomes a chunk.
+    """
+    explanation, _, code = hit.body.partition("\n\n")
+    return Answer(
+        intent="recipe",
+        locale=locale,
+        text=f"### {hit.title}\n\n{explanation.strip()}",
+        code=code.strip() + "\n" if code.strip() else None,
+        code_compiles=bool(code.strip()),
+        citations=[_cite(hit)],
+        confidence="exact",
+    )
+
+
+def _howto(
+    question: str,
+    connection: sqlite3.Connection,
+    locale: str,
+    hits: list[search.Hit] | None = None,
+) -> Answer:
+    hits = hits if hits is not None else search.search(connection, question, limit=8)
     if not hits:
         return Answer(intent="howto", locale=locale, text=say("nothing", locale))
 
+    if hits[0].kind == "recipe":
+        return _recipe(hits[0], locale)
+
     lines: list[str] = []
-    prose = [hit for hit in hits if hit.kind in ("doc_section", "symbol")]
+    prose = [hit for hit in hits if hit.kind in ("doc_section", "symbol", "recipe")]
     if prose:
         best = prose[0]
         lines += [f"### {say('from_docs', locale)}", "", f"**{best.title}**", "", best.body.strip()]
@@ -286,7 +281,7 @@ def _howto(question: str, connection: sqlite3.Connection, locale: str) -> Answer
     usable = _usable_code(hits)
     code = None
     if usable:
-        code = usable.body
+        code = usable.code
         lines += ["", f"### {say('example', locale)}", "", f"`{usable.title}` ✓ {say('compiles', locale)}"]
 
     return Answer(
@@ -318,11 +313,19 @@ def answer(
         if ASKS_EXPLAIN.search(question):
             return _explain(source, table, locale)
 
+    # One search, then routing on what actually came back. A recipe was written
+    # to answer a question in the words someone asks it, so when one is the best
+    # hit it beats naming a keyword: "CSV கோப்பில் எழுது" mentions எழுது, but
+    # the person is asking how to write a row, not what a keyword is.
+    hits = search.search(connection, question, limit=8)
+    if hits and hits[0].kind == "recipe":
+        return _recipe(hits[0], locale)
+
     named = _named_symbol(question, table)
     if named:
         return _symbol(named, connection, locale)
 
-    return _howto(question, connection, locale)
+    return _howto(question, connection, locale, hits)
 
 
 def main(argv: list[str] | None = None) -> int:

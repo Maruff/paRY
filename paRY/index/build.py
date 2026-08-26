@@ -28,8 +28,9 @@ import unicodedata
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .. import config, lexicon
+from .. import config, knowledge, lexicon
 from ..corpus.collect import read_jsonl
+from ..verify import oracle
 
 # SQLite's default tokenizer decides what counts as part of a word by Unicode
 # category, and it takes only letters and numbers. Tamil vowel signs and the
@@ -171,10 +172,58 @@ def _symbol_chunks() -> list[dict]:
     return chunks
 
 
+def _recipe_chunks() -> list[dict]:
+    """The taught tasks, each compiled before it is allowed into the index.
+
+    These carry the question in the words someone would ask it — English, Tamil
+    and the romanized spelling — which is the thing the corpus did not have.
+    A recipe that stops compiling is dropped rather than indexed, because the
+    one promise paRY makes is that its code compiles.
+    """
+    chunks: list[dict] = []
+    for recipe, compiles, error in knowledge.verify():
+        if not compiles:
+            print(f"    skipping recipe {recipe.id}: {error}")
+            continue
+        chunks.append(
+            {
+                "kind": "recipe",
+                "title": recipe.title,
+                "names": recipe.searchable,
+                "path": f"knowledge/recipes/{recipe.id}.toml",
+                "line": 1,
+                "compiles": True,
+                "body": f"{recipe.explain}\n\n{recipe.code}",
+                "extra": {
+                    "id": recipe.id,
+                    "tamil": recipe.tamil,
+                    "tags": recipe.tags,
+                    "explain": recipe.explain,
+                    "code": recipe.code,
+                },
+            }
+        )
+    return chunks
+
+
 def _corpus_chunks(corpus_dir: Path, verdicts: dict[str, bool]) -> list[dict]:
     documents = read_jsonl(corpus_dir / "documents.jsonl")
     blocks = read_jsonl(corpus_dir / "blocks.jsonl")
     chunks: list[dict] = []
+
+    # Compile them rather than assume. `compiles` means "this text, quoted as it
+    # stands, compiles" — and an example whose imports are written `../../` only
+    # resolves from its own directory, so quoting it at someone would hand them
+    # code that does not build. It is still indexed; it is just not quotable.
+    programs = [record for record in documents if record["kind"] in {"stdlib", "example", "bench"}]
+    verdicts_by_path = {
+        record["path"]: outcome.ok
+        for record, outcome in zip(
+            programs, oracle.check_many([record["text"] for record in programs])
+        )
+    }
+    quotable = sum(1 for ok in verdicts_by_path.values() if ok)
+    print(f"    {quotable}/{len(programs)} source files compile as quoted text")
 
     for record in documents:
         if record["kind"] in {"stdlib", "example", "bench"}:
@@ -186,7 +235,7 @@ def _corpus_chunks(corpus_dir: Path, verdicts: dict[str, bool]) -> list[dict]:
                     "repo": record["repo"],
                     "path": record["path"],
                     "line": 1,
-                    "compiles": True,
+                    "compiles": verdicts_by_path[record["path"]],
                     "body": record["text"],
                     "extra": {"lines": record["lines"], "source_kind": record["kind"]},
                 }
@@ -247,7 +296,7 @@ def build(corpus_dir: Path, out_path: Path, report_path: Path) -> dict:
     connection = sqlite3.connect(out_path)
     connection.executescript(SCHEMA)
 
-    chunks = _symbol_chunks() + _corpus_chunks(corpus_dir, _verdicts(report_path))
+    chunks = _symbol_chunks() + _recipe_chunks() + _corpus_chunks(corpus_dir, _verdicts(report_path))
 
     for chunk in chunks:
         body = unicodedata.normalize("NFC", chunk["body"])

@@ -1,0 +1,17 @@
+title = "Define a function and return a value"
+tamil = "ஒரு செயலை வரையறுத்து மதிப்பைத் திரும்பு"
+tags = ["basics", "function"]
+asks = [
+  "how do I define a function",
+  "write a function that returns a value",
+  "function with parameters",
+  "செயல் எப்படி எழுதுவது",
+]
+explain = "`செயல்` defines, `திரும்பு` returns. Parameters are named without types."
+code = '''
+செயல் கூட்டு(a, b) {
+    திரும்பு a + b;
+}
+
+அச்சு கூட்டு(2, 3);
+'''

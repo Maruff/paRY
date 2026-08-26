@@ -1,0 +1,20 @@
+title = "Query a database with parameters"
+tamil = "அளபுருக்களுடன் தரவுத்தளத்தை வினவு"
+tags = ["database", "sqlite", "sql"]
+asks = [
+  "how do I query a database",
+  "run a sql select",
+  "sqlite with parameters",
+  "தரவுத்தளத்தை எப்படி வினவுவது",
+]
+explain = "`தளம்_இணை` borrows a connection from a process-wide cache. Queries are parameterised — the values go in an array, never into the string — and rows come back as an array of records."
+code = '''
+தளம்_இணை "sqlite", "kaNakku.db";
+
+தளம்_வினா "SELECT peyar, qokY FROM pativukaL WHERE vakY = ?",
+          ["வரவு"], வரவுகள்;
+
+ஒவ்வொரு பதிவு இல் வரவுகள் {
+    அச்சு பதிவு.peyar;
+}
+'''

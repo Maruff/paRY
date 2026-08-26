@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse
 import sqlite3
 import unicodedata
+from functools import lru_cache
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -31,7 +32,8 @@ from .. import config
 WEIGHTS = (12.0, 3.0, 1.0)
 
 # Kinds that may be quoted back as working eTamil, best first.
-CODE_KINDS = ("example", "doc_block")
+# A recipe first: it was written to answer a question, and it compiles.
+CODE_KINDS = ("recipe", "example", "doc_block")
 
 
 @dataclass(frozen=True)
@@ -44,6 +46,19 @@ class Hit:
     score: float
     snippet: str
     body: str
+
+    @property
+    def code(self) -> str:
+        """The part of this hit that is actually a program.
+
+        A recipe's body is its explanation, a blank line, then the code — the
+        explanation is indexed because that is what a question matches on, and
+        it is prose, so it has to come off before the rest is quoted as eTamil.
+        """
+        if self.kind == "recipe":
+            _, _, body = self.body.partition("\n\n")
+            return body.strip() + "\n"
+        return self.body
 
     @property
     def is_usable_code(self) -> bool:
@@ -76,16 +91,55 @@ def _quoted(word: str) -> str:
     return '"' + word.replace('"', '""') + '"'
 
 
+@lru_cache(maxsize=1)
+def _spellings() -> dict[str, tuple[str, ...]]:
+    """Every accepted spelling to all the others it means.
+
+    eTamil takes three spellings of each name — Tamil script, romanized, and an
+    English alias — and a question can be asked in any of them. `accu`, `_print`
+    and `அச்சு` are the same word, so a question that uses one has to find a
+    document that uses another. The compiler's own tables say which are which,
+    so this needs no transliteration and cannot disagree with the language.
+    """
+    from .. import lexicon
+
+    names = lexicon.load()
+    table: dict[str, tuple[str, ...]] = {}
+    groups = [entry["forms"] for entry in names.keywords]
+    groups += [entry["forms"] for entry in names.builtins]
+    groups += [entry["forms"] for entry in names.stdlib]
+    for forms in groups:
+        for form in forms:
+            table.setdefault(form, tuple(forms))
+    return table
+
+
+def expand(words: list[str]) -> list[str]:
+    """The words asked for, plus the other spellings of any that are names."""
+    table = _spellings()
+    out: list[str] = []
+    for word in words:
+        out.append(word)
+        for sibling in table.get(word, ()):
+            if sibling != word and sibling not in out:
+                out.append(sibling)
+    return out
+
+
 def queries(question: str) -> list[str]:
     """The passes to try, narrowest first. Empty if there is nothing to search."""
     words = terms(question)
     if not words:
         return []
+
+    # AND over what was asked; OR over every spelling of it, so a romanized
+    # question reaches Tamil-script documents and the other way round.
     quoted = [_quoted(word) for word in words]
+    widened = [_quoted(word) for word in expand(words)]
     passes = []
     if len(quoted) > 1:
         passes.append(" AND ".join(quoted))
-    passes.append(" OR ".join(quoted))
+    passes.append(" OR ".join(widened))
     # Last resort: the longest word as a prefix, for someone who stopped typing
     # halfway. FTS5 spells this `"word" *` — the star sits outside the quotes.
     passes.append(f"{_quoted(max(words, key=len))} *")

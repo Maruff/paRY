@@ -1,0 +1,18 @@
+title = "Build JSON and send it as a response"
+tamil = "ஜேசான் உருவாக்கி பதிலாக அனுப்பு"
+tags = ["http", "json", "api"]
+asks = [
+  "how do I return json",
+  "build a json body",
+  "json response from a route",
+  "ஜேசான் பதில் எப்படி அனுப்புவது",
+]
+explain = "`உடல்` is the Body keyword, so it cannot be a variable name — this one is called `விடை`. Build the body with `ஜேசான்_ஆக்கு` — which is written in eTamil, not a host builtin — and send it with `பதில்`. `ஜேசான்_உரை` parses but the VM refuses it."
+code = '''
+இறக்கு "nUlakam/jEcAZ.qmz";
+
+வழி பெறு, "/api/kaNakku" {
+    விடை = ஜேசான்_ஆக்கு({"peyar": "Rice", "qokY": 40});
+    பதில் 200, விடை, {"Content-Type": "application/json"};
+}
+'''

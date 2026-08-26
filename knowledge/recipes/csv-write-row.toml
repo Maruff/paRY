@@ -1,0 +1,15 @@
+title = "Write a row to a CSV file"
+tamil = "CSV கோப்பில் ஒரு வரியை எழுது"
+tags = ["file", "csv", "io"]
+asks = [
+  "how do I write a row to a CSV file",
+  "append a line to a csv",
+  "write csv output",
+  "CSV கோப்பில் எழுது",
+]
+explain = "`தரவுரை_எழுது` appends one row. Write the header once, then a row per record; the file is created if it is not there."
+code = '''
+தரவுரை_எழுது "inventory.csv", "product_id,name,stock";
+தரவுரை_எழுது "inventory.csv", "1,Rice,40";
+அச்சு "written";
+'''

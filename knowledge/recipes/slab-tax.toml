@@ -1,0 +1,23 @@
+title = "Compute slab tax on an amount"
+tamil = "ஒரு தொகைக்கு அடுக்கு வரியைக் கணக்கிடு"
+tags = ["finance", "tax", "money"]
+asks = [
+  "how do I compute income tax",
+  "slab tax calculation",
+  "tax brackets",
+  "வரி எப்படி கணக்கிடுவது",
+]
+explain = "Slabs are ordinary early returns, and the arithmetic is exact decimal rather than floating point — which is why money can be compared safely."
+code = '''
+இறக்கு "nUlakam/paNam.qmz";
+
+செயல் வரி_கணக்கு(ஆண்டு_சம்பளம்) {
+    (ஆண்டு_சம்பளம் <= 300000) எனில் { திரும்பு 0; }
+    (ஆண்டு_சம்பளம் <= 700000) எனில் {
+        திரும்பு சதவீதம்(ஆண்டு_சம்பளம் - 300000, 5);
+    }
+    திரும்பு 20000 + சதவீதம்(ஆண்டு_சம்பளம் - 700000, 20);
+}
+
+அச்சு ரூபாய்(வரி_கணக்கு(850000));
+'''
