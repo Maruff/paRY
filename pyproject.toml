@@ -20,6 +20,7 @@ packages = [
     "paRY",
     "paRY.answer",
     "paRY.corpus",
+    "paRY.eval",
     "paRY.index",
     "paRY.serve",
     "paRY.tokenizer",
