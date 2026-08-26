@@ -97,6 +97,65 @@ def throughput_for(name: str) -> tuple[str, float]:
     return "unknown", THROUGHPUT["unknown"]
 
 
+def benchmark(device: str, size: int = 2048, repeats: int = 6) -> float | None:
+    """Measure what this machine really does, rather than look it up.
+
+    A big matmul is most of what training is, so timing one gives an estimate
+    good enough to decide between "train here overnight" and "rent an hour".
+    Returns FLOPs per second, or None if the device is unusable.
+    """
+    try:
+        import torch
+    except ImportError:
+        return None
+    if device == "cuda" and not torch.cuda.is_available():
+        return None
+
+    import time
+
+    try:
+        left = torch.randn(size, size, device=device)
+        right = torch.randn(size, size, device=device)
+    except (RuntimeError, AssertionError):
+        return None
+
+    # One untimed pass: the first call allocates and warms the kernels up.
+    torch.matmul(left, right)
+    if device == "cuda":
+        torch.cuda.synchronize()
+
+    started = time.perf_counter()
+    for _ in range(repeats):
+        torch.matmul(left, right)
+    if device == "cuda":
+        torch.cuda.synchronize()
+    elapsed = time.perf_counter() - started
+
+    # A matmul of two n×n matrices is 2n³ floating-point operations.
+    return (2 * size**3 * repeats) / elapsed
+
+
+def plan(rate: float) -> list[tuple[str, int, int, float]]:
+    """How long each sensible run takes at a measured rate.
+
+    Training compute is 6 × parameters × tokens. The pilot is there because the
+    first thing worth knowing is whether the pipeline works end to end, and that
+    question does not need a full-sized model or a full corpus.
+    """
+    configurations = [
+        # Not a model anyone would ship — a run short enough to prove the
+        # pipeline end to end on whatever hardware is in front of you.
+        ("smoke", 3_000_000, 3_000_000),
+        ("pilot", 10_000_000, 20_000_000),
+        ("small", 45_000_000, 50_000_000),
+        ("Phase A", 45_000_000, 300_000_000),
+    ]
+    return [
+        (name, params, tokens, (6 * params * tokens) / rate / 3600)
+        for name, params, tokens in configurations
+    ]
+
+
 def main() -> int:
     print("paRY — what can this machine train?\n")
 
@@ -120,30 +179,50 @@ def main() -> int:
         if report.get("free_gb") is not None:
             print(f"  free VRAM  {report['free_gb']} GB of {report['total_gb']} GB")
 
+    # Memory is the question everyone asks first, and it is the wrong one.
     print()
-    name = cards[0]["name"] if cards else report.get("device", "unknown")
-    label, rate = throughput_for(name)
-    hours = FLOPS / rate / 3600
-    print(f"Phase A is {FLOPS:.1e} FLOPs (45M parameters over {TOKENS / 1e6:.0f}M tokens).")
-    print(f"At the rate a {label} realistically sustains, one run is about "
-          f"{hours:.1f} hours.")
+    print("What training this actually needs:")
+    print("  parameters + gradients + Adam states   ~0.9 GB")
+    print("  activations at batch 8 x 1024 tokens   ~1.0 GB")
+    print("  ------------------------------------------------")
+    print("  about 2-3 GB. 16 GB of system RAM is not the constraint.")
 
-    memory_gb = (cards[0]["total_mb"] / 1024) if cards else report.get("total_gb", 0)
     print()
-    if not cards and not report.get("cuda_available"):
-        print("VERDICT: no usable CUDA GPU here. On CPU this model is days, not hours —")
-        print("         rent an L40S for an hour instead (about $1).")
-    elif memory_gb < 6:
-        print(f"VERDICT: {memory_gb:.0f} GB is tight. It will train with a small batch and")
-        print("         gradient accumulation, just slowly. Worth trying before renting.")
-    elif hours > 6:
-        print("VERDICT: it will train, but overnight rather than over lunch. Fine for the")
-        print("         first run; rent for the ablations if you are iterating.")
+    print("Measuring this machine rather than guessing…")
+    cpu_rate = benchmark("cpu")
+    gpu_rate = benchmark("cuda")
+    if cpu_rate:
+        print(f"  CPU   {cpu_rate / 1e9:>8,.0f} GFLOP/s measured")
+    if gpu_rate:
+        print(f"  GPU   {gpu_rate / 1e9:>8,.0f} GFLOP/s measured")
+    elif report.get("installed"):
+        print("  GPU   unusable from PyTorch")
+
+    # Training sustains well under a bare matmul's rate: attention, the
+    # optimiser and data loading all cost time that this benchmark does not.
+    rate = (gpu_rate or cpu_rate or THROUGHPUT["unknown"]) * 0.35
+    if not cpu_rate and not gpu_rate:
+        _, rate = throughput_for(cards[0]["name"] if cards else "unknown")
+
+    print()
+    print(f"{'run':<10}{'params':>10}{'tokens':>10}{'hours':>10}")
+    for name, params, tokens, hours in plan(rate):
+        print(f"{name:<10}{params / 1e6:>9,.0f}M{tokens / 1e6:>9,.0f}M{hours:>10.1f}")
+
+    print()
+    if gpu_rate:
+        print("VERDICT: CUDA works here. Train on this machine — nothing leaves it,")
+        print("         and the ablations cost nothing but time.")
+    elif cpu_rate:
+        print("VERDICT: no usable CUDA GPU, so this would be CPU training.")
+        print("         Run the pilot here overnight to prove the pipeline works end")
+        print("         to end, then rent an L40S for about $1 for the real run.")
+        print("         Renting is worth it once you are comparing runs, not before.")
     else:
-        print("VERDICT: train here. No rental needed, and nothing leaves the machine.")
+        print("VERDICT: install PyTorch and run this again — nothing can be measured yet.")
 
     print()
-    print("Send this output back and the trainer will be written for this GPU.")
+    print("Send this output back and the trainer will be written for what it says.")
     return 0
 
 
