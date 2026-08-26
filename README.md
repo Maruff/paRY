@@ -205,6 +205,47 @@ checked, and **only 32 of 77 actually compile as quoted text** — the rest have
 `../../` imports that resolve only from their own directory. Those are still
 indexed and cited; they are no longer quoted as answers.
 
+### The eval set — what Phase A has to beat
+
+225 held-out completion cases, cut out of 14 files that compile. A case is a
+real program with a hole in it: the text before, the text after, and the lines
+removed — the shape an editor asks for. The split is `sha256(path) % 5`, so the
+same files are held out on every machine and the corpus generator can be told
+to exclude them without a second list.
+
+```bash
+python -m paRY.eval.cases     # build the cases
+python -m paRY.eval.run       # score every baseline
+```
+
+| completer | exact | similar | compiles | empty |
+|---|---:|---:|---:|---:|
+| nothing | 0.0% | 0.000 | **43.1%** | 100% |
+| previous line | 0.0% | 0.249 | 34.2% | 0% |
+| retrieval (paRY today) | 1.3% | 0.063 | 45.8% | 88.4% |
+| truth *(the ceiling)* | 100% | 1.000 | 100% | 0% |
+
+**The floor is 1.3% exact.** That is the number Phase A has to beat, and it is
+low enough that a working model should beat it easily — which is the useful
+thing to know before spending anything.
+
+Two things this measured that were not obvious.
+
+**Predicting nothing compiles 43% of the time.** A completer scored only on
+"does it compile" can win by saying nothing at all, which is why four numbers
+are reported rather than one.
+
+**Retrieval scored 66.7% exact until the leak was closed.** The held-out files
+are held out of *training* — they are still in the retrieval index, so the
+completer was finding the very file the hole was cut from and copying the
+answer back. Leave-one-out took it to 1.3%. `truth` scoring 100% on every
+metric is the harness's own check: below that, the eval is broken rather than
+the completer.
+
+Candidates are compiled in a temporary tree with its own copy of `nUlakam`,
+because `இறக்கு "../../nUlakam/paNam.qmz"` resolves only from the file's own
+directory — and nothing is written into the eTamil repository.
+
 ### The server
 
 The one protocol all four surfaces speak. `pip install -e ".[serve]"`, then
@@ -421,6 +462,8 @@ paRY/corpus/collect.py the corpus, with provenance and content hashes
 paRY/verify/oracle.py  the compiler as a judge
 paRY/tokenizer/        training and measurement
 paRY/knowledge.py      recipes and guidance — how paRY is taught
+paRY/eval/             held-out cases, the scorer, and the baselines
+training/              what runs on a GPU machine
 knowledge/             the taught files themselves
 paRY/index/            the FTS5 retrieval index, and asking it questions
 paRY/answer/           intent routing, and the answer itself

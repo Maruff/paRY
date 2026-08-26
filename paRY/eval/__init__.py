@@ -1,1 +1,1 @@
-"""Measuring a completion model, starting before there is one."""
+"""Measuring a completion: held-out cases, and what scores well on them."""
