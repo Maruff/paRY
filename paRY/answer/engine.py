@@ -259,6 +259,54 @@ def _recipe(hit: search.Hit, locale: str) -> Answer:
     )
 
 
+
+# A recipe answers one taught task, so returning it as `confidence="exact"` is
+# only honest when the question really is that task.
+#
+# Ten short recipes compete against thousands of longer chunks under bm25,
+# which normalises by document length, so a recipe reaching rank one says
+# little by itself. What separates a real match is that nothing else comes
+# close. Measured against the real index, with the four questions the test
+# suite fixes as recipe questions and four that are not:
+#
+#   CSV கோப்பில் எழுது                 30.07   next  0.00
+#   how do I return json               28.42   next  0.00
+#   how do I define a function         35.46   next  0.00
+#   how do I write a row to a CSV file 42.98   next  0.00
+#
+#   how do I read a file line by line  30.06   next 25.88
+#   how do I reverse an array          22.73   next 19.39
+#   how do I connect to postgres       15.09   next 13.12
+#
+# Note that the absolute scores overlap — a true match at 28.42 scores below a
+# false one at 30.06 — so an absolute floor cannot separate them, and one tried
+# here rejected two questions the suite requires. bm25 sums over the query's
+# terms, so its scale moves with the question and only the *ratio* is
+# comparable between questions. A true match has no runner-up at all; a false
+# one is never more than 1.3x ahead.
+#
+# A recipe that fails this is not discarded: the question falls through to the
+# retrieved answer, which says `retrieved` and cites what it found. A wrong
+# answer admitting uncertainty can be recovered from; a wrong answer claiming
+# certainty cannot.
+RECIPE_LEAD = 2.0
+
+
+def _recipe_is_the_question(hits: list[search.Hit]) -> bool:
+    """Is the top recipe convincingly what was asked, rather than merely first?
+
+    Compares bm25 scores specifically, not `score`, which becomes a fused rank
+    once semantic retrieval is in play. The ratio below was calibrated against
+    bm25 and means nothing on any other scale; and a chunk the embeddings alone
+    found has no bm25 score at all, so counting it as a runner-up of zero would
+    read as "nothing else came close" — the exact opposite of the truth.
+    """
+    top = hits[0]
+    rivals = [hit.lexical for hit in hits[1:] if hit.lexical > 0.0]
+    runner_up = max(rivals) if rivals else 0.0
+    return runner_up <= 0.0 or top.lexical >= RECIPE_LEAD * runner_up
+
+
 def _howto(
     question: str,
     connection: sqlite3.Connection,
@@ -269,11 +317,19 @@ def _howto(
     if not hits:
         return Answer(intent="howto", locale=locale, text=say("nothing", locale))
 
-    if hits[0].kind == "recipe":
+    if hits[0].kind == "recipe" and _recipe_is_the_question(hits):
         return _recipe(hits[0], locale)
 
     lines: list[str] = []
-    prose = [hit for hit in hits if hit.kind in ("doc_section", "symbol", "recipe")]
+    # Reaching here with a recipe on top means the dominance test just decided
+    # that recipe is not what was asked. Quoting it anyway as the best thing
+    # found contradicts the decision in the same breath — "how do I connect to
+    # postgres" answered with the CSV recipe, only now labelled `retrieved`.
+    # Prefer anything else; fall back to it only when there is nothing else.
+    kinds = ("doc_section", "symbol", "recipe")
+    prose = [hit for hit in hits if hit.kind in kinds and hit.kind != "recipe"]
+    if not prose:
+        prose = [hit for hit in hits if hit.kind in kinds]
     if prose:
         best = prose[0]
         lines += [f"### {say('from_docs', locale)}", "", f"**{best.title}**", "", best.body.strip()]
@@ -318,7 +374,7 @@ def answer(
     # hit it beats naming a keyword: "CSV கோப்பில் எழுது" mentions எழுது, but
     # the person is asking how to write a row, not what a keyword is.
     hits = search.search(connection, question, limit=8)
-    if hits and hits[0].kind == "recipe":
+    if hits and hits[0].kind == "recipe" and _recipe_is_the_question(hits):
         return _recipe(hits[0], locale)
 
     named = _named_symbol(question, table)

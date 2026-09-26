@@ -21,3 +21,6 @@ __pycache__/
 # Packaging output: the frozen server, the staged payload and the zip.
 /build/
 /desktop/branding/theme/*.vsix
+
+# The deploy payload, built by tar from paRY/, data/ and web/.
+/pary-src.tar
