@@ -105,8 +105,13 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("pary.checkServer", async () => {
       try {
         const health = await client.health();
+        // Both versions, each labelled. They are different things and they
+        // move independently: the server is the Python package, this is the
+        // extension. One unlabelled number here read as the other cost a
+        // reinstall that had already worked.
         void vscode.window.showInformationMessage(
-          `paRY ${health.version} · ${health.compiler ?? "no compiler"} · ` +
+          `paRY server ${health.version} · extension ${extensionVersion(context)} · ` +
+            `${health.compiler ?? "no compiler"} · ` +
             `${health.chunks ?? 0} chunks · ` +
             `${health.model ?? "no model — compiler and corpus only"}`,
         );
@@ -139,6 +144,12 @@ export function deactivate(): void {
  * A setting the user has actually written down wins over this — `inspect`
  * distinguishes a value someone chose from the manifest default.
  */
+/** This extension's own version, for the status message that reports both. */
+function extensionVersion(context: vscode.ExtensionContext): string {
+  const version: unknown = context.extension.packageJSON?.version;
+  return typeof version === "string" ? version : "unknown";
+}
+
 function shouldRunDiagnostics(): boolean {
   const setting = vscode.workspace.getConfiguration("pary").inspect<boolean>("diagnostics.enabled");
   const chosen =

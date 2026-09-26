@@ -2,7 +2,7 @@
   "name": "pary",
   "displayName": "paRY — eTamil assistant",
   "description": "Ask about eTamil, and see the compiler's own answer. No hosted model is called.",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "publisher": "etamil",
   "license": "MIT",
   "engines": {
