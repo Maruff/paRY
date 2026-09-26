@@ -27,12 +27,14 @@ from __future__ import annotations
 import argparse
 import re
 import sqlite3
+import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 
 from .. import knowledge, lexicon
 from ..index import search
 from ..verify import oracle
+from . import model
 from .phrases import detect_locale, say
 
 # Inline a program only if it is short enough to read in an answer. Anything
@@ -307,6 +309,79 @@ def _recipe_is_the_question(hits: list[search.Hit]) -> bool:
     return runner_up <= 0.0 or top.lexical >= RECIPE_LEAD * runner_up
 
 
+
+def _composed(question: str, hits: list[search.Hit], locale: str) -> Answer | None:
+    """Let the model phrase the retrieved chunks, if there is a model.
+
+    Returns None whenever there is not, or whenever it produced nothing usable,
+    and the caller then assembles the answer exactly as it did before models
+    existed. That path is not a fallback for emergencies — it is what runs on
+    every machine without an Ollama, including the one that builds the corpus.
+
+    The model writes no program that the compiler has not accepted. It gets one
+    chance to fix what the compiler complained about, and if the second attempt
+    also fails the code is dropped and only the prose survives. Shipping code
+    with `code_compiles=False` would be worse than shipping none: the editor
+    hides the Insert button, so what the reader sees is a program presented as
+    an answer with no way to use it and no statement that it is wrong.
+    """
+    if not model.available():
+        return None
+
+    # One budget for the whole thing, not one per call. The repair attempt is a
+    # second generation and on a CPU box that is another minute; measured, a
+    # question that needed one took 122s while the ceiling was nominally 90.
+    # What the reader waits for is the answer, not each attempt at it.
+    deadline = time.monotonic() + model.TIMEOUT
+    composed = model.compose(question, hits, budget=model.TIMEOUT)
+    if composed is None:
+        return None
+
+    text, code = composed
+    if not text and not code:
+        return None
+
+    compiles = False
+    if code:
+        result = oracle.check(code)
+        if not result.ok:
+            remaining = deadline - time.monotonic()
+            # No time left is not a failure worth reporting: the prose is
+            # already written and the code is dropped either way.
+            retry = (
+                model.compose(
+                    question, hits, repair=result.first_error, previous=code,
+                    budget=remaining,
+                )
+                if remaining > 5.0
+                else None
+            )
+            code = None
+            if retry is not None:
+                retry_text, retry_code = retry
+                if retry_code and oracle.check(retry_code).ok:
+                    code, compiles = retry_code, True
+                    text = retry_text or text
+        else:
+            compiles = True
+
+    if not text:
+        return None
+
+    return Answer(
+        intent="howto",
+        locale=locale,
+        text=text,
+        code=code,
+        code_compiles=compiles,
+        citations=[_cite(hit) for hit in hits[:4]],
+        # Its own word. "retrieved" would claim the sentences came out of the
+        # corpus, and they did not — a model wrote them from what the corpus
+        # said. Any code carrying this has still been through the compiler.
+        confidence="generated",
+    )
+
+
 def _howto(
     question: str,
     connection: sqlite3.Connection,
@@ -319,6 +394,10 @@ def _howto(
 
     if hits[0].kind == "recipe" and _recipe_is_the_question(hits):
         return _recipe(hits[0], locale)
+
+    composed = _composed(question, hits, locale)
+    if composed is not None:
+        return composed
 
     lines: list[str] = []
     # Reaching here with a recipe on top means the dominance test just decided
