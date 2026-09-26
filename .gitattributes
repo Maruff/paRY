@@ -1,0 +1,35 @@
+# Line endings: LF, everywhere, in the repository and in the working tree.
+#
+# `core.autocrlf=true` is set on the machines this is developed from, and it
+# converts on checkout and inside `git archive`. Nothing in this repository
+# wants CRLF, and two things break outright on it:
+#
+#   deploy/run-deploy.sh and deploy/tunnel.sh are scp'd to a Linux server and
+#   run there. `set -euo pipefail\r` is not a shell option, and bash reports it
+#   as "set: pipefail: invalid option name" from a file that looks correct in
+#   every editor.
+#
+#   deploy/pary.service is read by systemd, where a trailing \r becomes part of
+#   the value — ExecStart pointing at a binary whose name ends in ^M.
+#
+# The same thing cost a working day in the kElir repository before the rule was
+# written down there, including five signing tests that failed because babel
+# normalises a template literal to \n while fs.readFileSync keeps a fixture's
+# \r\n, so indexOf could never match. Nothing in that test was wrong.
+#
+# One catch before trusting a check: `git archive <commit>` reads .gitattributes
+# from the tree it is archiving, not from the working tree, so this has no
+# effect on an archive of any commit made before it was committed. Pass
+# --worktree-attributes to apply it anyway.
+
+* text=auto eol=lf
+
+# Never converted, never diffed as text.
+*.db      binary
+*.vsix    binary
+*.png     binary
+*.jpg     binary
+*.pdf     binary
+*.docx    binary
+*.woff    binary
+*.woff2   binary
