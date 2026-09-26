@@ -48,6 +48,38 @@ CASES: list[tuple[str, str]] = [
     ("how much GST on an amount", "வரி_தொகை"),
 ]
 
+#: The same twenty functions, asked differently.
+#:
+#: CASES above was written while diagnosing why retrieval failed, so the docs
+#: were then edited knowing those questions — and scoring that edit against
+#: them would prove only that the words had been copied across. These
+#: phrasings avoid the wording that went into the docs: the doc now says
+#: "reverse an array", so this asks to flip the order of a list.
+#:
+#: When the two sets disagree, believe this one.
+HELD_OUT: list[tuple[str, str]] = [
+    ("what does each item cost me to make", "அலகுக்குச்_செலவு"),
+    ("how many must I sell before I stop losing money", "சமநிலை_அலகுகள்"),
+    ("find the root of a number", "வர்க்கமூலம்"),
+    ("flip the order of a list", "தலைகீழ்"),
+    ("check whether a list has nothing in it", "காலியா"),
+    ("see if an item is in a list", "உள்ளதா"),
+    ("when does this month end", "மாத_இறுதி"),
+    ("does February have 29 days this year", "நெட்டாண்டா"),
+    ("turn a string into base64", "அறுபத்துநான்கு_ஆக்கு"),
+    ("read a JSON string into data", "ஜேசான்_படி"),
+    ("print money with the rupee symbol", "ரூபாய்"),
+    ("display a big number the Indian way", "கோடி"),
+    ("test whether text begins with something", "தொடங்குகிறதா"),
+    ("the mean of a set of values", "சராசரி"),
+    ("pick whichever number is bigger", "பெரியது"),
+    ("list every account balance to check the books", "இருப்பாய்வு"),
+    ("write off an asset a bit each year", "குறையும்_அட்டவணை"),
+    ("why did wages cost more per hour than planned", "ஊதிய_வீத_வேறுபாடு"),
+    ("is the project spending more than the work is worth", "செலவு_வேறுபாடு"),
+    ("how much tax do I add to a sale", "வரி_தொகை"),
+]
+
 DEPTH = 20
 
 
@@ -61,9 +93,10 @@ def rank_of(hits, wanted: str) -> int | None:
     return None
 
 
-def measure(connection, retriever, depth: int = DEPTH) -> dict:
+def measure(connection, retriever, depth: int = DEPTH, cases=None) -> dict:
+    cases = CASES if cases is None else cases
     ranks: list[int | None] = []
-    for question, wanted in CASES:
+    for question, wanted in cases:
         ranks.append(rank_of(retriever(connection, question, limit=depth), wanted))
     found = [r for r in ranks if r is not None]
     return {
@@ -71,12 +104,12 @@ def measure(connection, retriever, depth: int = DEPTH) -> dict:
         "at1": sum(1 for r in found if r == 1),
         "at3": sum(1 for r in found if r <= 3),
         "at10": sum(1 for r in found if r <= 10),
-        "mrr": sum(1.0 / r for r in found) / len(CASES),
+        "mrr": sum(1.0 / r for r in found) / len(cases),
     }
 
 
 def report(label: str, result: dict) -> None:
-    n = len(CASES)
+    n = len(result["ranks"])
     print(
         f"  {label:<10} recall@1 {result['at1']:>2}/{n}   "
         f"@3 {result['at3']:>2}/{n}   @10 {result['at10']:>2}/{n}   "
@@ -86,24 +119,28 @@ def report(label: str, result: dict) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Measure question-to-function lookup.")
-    parser.add_argument("--detail", action="store_true", help="print every case")
+    parser.add_argument("--detail", action="store_true", help="print every held-out case")
     args = parser.parse_args(argv)
 
     connection = search.connect()
-    results = {
-        "lexical": measure(connection, search.lexical_search),
-        "semantic": measure(connection, search.semantic_search),
-        "fused": measure(connection, search.search),
-    }
-    print(f"  {len(CASES)} questions, looking for the function's own symbol chunk\n")
-    for label, result in results.items():
-        report(label, result)
-
-    if args.detail:
+    held = None
+    for name, cases in (("diagnostic", CASES), ("held out", HELD_OUT)):
+        print(f"  {name}: {len(cases)} questions")
+        for label, retriever in (
+            ("lexical", search.lexical_search),
+            ("semantic", search.semantic_search),
+            ("fused", search.search),
+        ):
+            result = measure(connection, retriever, cases=cases)
+            report(label, result)
+            if name == "held out" and label == "fused":
+                held = result
         print()
-        for (question, wanted), rank in zip(CASES, results["fused"]["ranks"]):
+
+    if args.detail and held:
+        for (question, wanted), rank in zip(HELD_OUT, held["ranks"]):
             mark = "ok  " if rank == 1 else ("    " if rank else "MISS")
-            print(f"  {mark} {str(rank or '-'):>3}  {question[:38]:<40} {wanted}")
+            print(f"  {mark} {str(rank or '-'):>3}  {question[:44]:<46} {wanted}")
     return 0
 
 
