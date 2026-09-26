@@ -285,6 +285,27 @@ def semantic_search(
 # hearing. K dampens the top of each list so rank one is not overwhelming.
 RRF_K = 60
 
+# The index holds two different things and reciprocal rank fusion treats them
+# as interchangeable, which they are not. `symbol` chunks are the API itself —
+# a name you can call. `doc_section` chunks are prose *about* eTamil. For "how
+# do I do X", the function is the answer and the documentation is background,
+# so a section that merely mentions the topic should not outrank the function
+# that performs it.
+#
+# The weights multiply each retriever's contribution. They are not a statement
+# that documentation is worth less: a question about a concept still reaches
+# it, because the weight tilts a close contest rather than filtering anything
+# out. Measured over paRY/eval/lookup.py, twenty questions whose answer is a
+# known function.
+KIND_WEIGHT = {
+    "symbol": 1.0,
+    "recipe": 1.0,
+    "example": 0.9,
+    "doc_block": 0.7,
+    "doc_section": 0.55,
+}
+DEFAULT_KIND_WEIGHT = 0.8
+
 #: How deep to look in each retriever before fusing. Wider than the answer, so
 #: a chunk ranked tenth lexically and second semantically can still win.
 FUSION_DEPTH = 30
@@ -313,7 +334,8 @@ def search(
     for hits in (lexical, semantic):
         for position, hit in enumerate(hits):
             key = (hit.title, hit.path or "")
-            contribution = 1.0 / (RRF_K + position + 1)
+            weight = KIND_WEIGHT.get(hit.kind, DEFAULT_KIND_WEIGHT)
+            contribution = weight / (RRF_K + position + 1)
             if key in ranked:
                 previous, kept = ranked[key]
                 # Keep whichever copy carries the lexical score, so the
