@@ -1,0 +1,52 @@
+# /etc/systemd/system/pary.service
+#
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now pary
+#   journalctl -u pary -f
+#
+# Loopback only. This server compiles source it is sent, and paRY's own module
+# docstring says binding wider is a decision that has to be typed out. nginx
+# terminates TLS in front of it when — and only when — something is put in
+# front of it that decides who may ask.
+
+[Unit]
+Description=paRY — eTamil assistant (retrieval, compiler-verified)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pary
+Group=pary
+WorkingDirectory=/opt/pary
+
+# Every path paRY reads is env-overridable, so nothing here depends on the
+# layout the corpus was built with.
+Environment=PARY_DATA=/opt/pary/data
+Environment=PARY_WEB=/opt/pary/web
+Environment=ETAMIL_BIN=/usr/local/bin/etamil
+
+ExecStart=/opt/pary/.venv/bin/python -m paRY.serve --host 127.0.0.1 --port 8900
+
+Restart=always
+RestartSec=3
+
+# --- hardening -------------------------------------------------------------
+# It reads its own package and index, runs the compiler on a temporary file,
+# and listens on loopback. It needs nothing else — in particular it never
+# writes to its own directory, so that stays read-only.
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadOnlyPaths=/opt/pary
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictSUIDSGID=yes
+
+[Install]
+WantedBy=multi-user.target
