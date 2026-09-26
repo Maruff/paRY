@@ -59,14 +59,28 @@ def test_text_survives_a_round_trip(tokenizer, text):
 
 @needs_tokenizer
 def test_every_accepted_name_is_a_single_token(tokenizer):
-    """A keyword that costs four tokens is four chances to invent a keyword."""
+    """A keyword that costs four tokens is four chances to invent a keyword.
+
+    Except where the name carries a digit, and then it cannot be one token by
+    this tokenizer's own design: digits are split individually because this is
+    a language for money, and `18` reaching the model as one symbol it has seen
+    and `180` as one it has not is how an amount comes back wrong. That rule is
+    worth more than one-token names for the two identifiers it costs.
+
+    Those two are `முறை_0_100` and `முறை_50_50` — 0/100 and 50/50 are the
+    standard names of the earned-value conventions they implement, so the
+    digits are the domain's and not a naming slip to tidy away.
+
+    The assertion is therefore that a name splits *only* because of a digit. A
+    name without one that splits is a real regression and still fails here.
+    """
     names = lexicon.load().vocabulary
     split = [
         name
         for name in names
         if len(tokenizer.encode(" " + name, add_special_tokens=False).ids) != 1
     ]
-    assert split == []
+    assert [name for name in split if not any(c.isdigit() for c in name)] == []
 
 
 @needs_tokenizer

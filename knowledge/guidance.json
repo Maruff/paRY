@@ -2,7 +2,7 @@
   {
     "id": "declaration-prefix",
     "when": {
-      "error": "expected '='",
+      "error": "expected '='|there is no shape named",
       "source": "\\b(மாறி|நிலை|mARi|nilY)\\s"
     },
     "en": "`மாறி` and `நிலை` are tokens, but they are not statement prefixes. eTamil assigns with a bare name: `x = 5;`, not `மாறி x = 5;`.",
