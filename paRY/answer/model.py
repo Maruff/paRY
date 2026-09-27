@@ -181,3 +181,65 @@ def split_code(content: str) -> tuple[str, str | None]:
     code = block.strip()
     prose = f"{before.strip()}\n\n{after.strip()}".strip()
     return prose, (code or None)
+
+
+# --------------------------------------------------------------- expansion --
+
+EXPAND_SYSTEM = (
+    "You turn a plain question into the technical terms a programmer or an "
+    "accountant would use for it. Reply with three to six comma-separated "
+    "terms and nothing else. No sentences, no explanation."
+)
+
+#: Short prompt, short answer, so this costs seconds rather than the minute a
+#: composed answer takes. Measured on the 4 GB box: 2.4 to 3.7 seconds warm.
+EXPAND_TOKENS = 40
+EXPAND_TIMEOUT = 25.0
+
+_expansions: dict[str, str | None] = {}
+
+
+def expand_query(question: str) -> str | None:
+    """The domain terms for a question, or None if there is no model.
+
+    bm25 and a 384-dimension embedding both need the question and the document
+    to share vocabulary. "How many must I sell before I stop losing money"
+    shares none with சமநிலை_அலகுகள், whose doc says "break-even, in units", and
+    no amount of documentation fixes a question phrased in different words.
+
+    Expanding through the corpus was tried first and does not work here: only
+    178 of 1,272 documentation chunks mention any stdlib name at all, and the
+    prose and the library therefore cannot bridge to each other. The model is
+    the only source of the connection that is not simply a list of answers
+    written out by hand.
+
+    Cached per process. The same question asked twice is common — a user
+    rephrasing, a test suite — and the second one should be free.
+    """
+    if question in _expansions:
+        return _expansions[question]
+
+    reply = None
+    if available():
+        answer = _post(
+            "/api/chat",
+            {
+                "model": MODEL_NAME,
+                "stream": False,
+                "messages": [
+                    {"role": "system", "content": EXPAND_SYSTEM},
+                    {"role": "user", "content": question},
+                ],
+                "options": {"temperature": 0.0, "num_predict": EXPAND_TOKENS},
+            },
+            EXPAND_TIMEOUT,
+        )
+        if answer is not None:
+            content = (answer.get("message") or {}).get("content", "").strip()
+            # A model that ignored the instruction and wrote a sentence is
+            # worse than no expansion: it would flood the query with stopwords.
+            if content and len(content) < 200 and chr(10) not in content:
+                reply = content
+
+    _expansions[question] = reply
+    return reply

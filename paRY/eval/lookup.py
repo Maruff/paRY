@@ -130,6 +130,7 @@ def main(argv: list[str] | None = None) -> int:
             ("lexical", search.lexical_search),
             ("semantic", search.semantic_search),
             ("fused", search.search),
+            ("expanded", lambda c, q, limit: search.search(c, q, limit=limit, expand=True)),
         ):
             result = measure(connection, retriever, cases=cases)
             report(label, result)

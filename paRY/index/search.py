@@ -285,6 +285,10 @@ def semantic_search(
 # hearing. K dampens the top of each list so rank one is not overwhelming.
 RRF_K = 60
 
+#: How far an expansion's opinion outweighs the original question's. Swept
+#: below; see the commit that introduced it.
+EXPANSION_TRUST = 1.0
+
 # The index holds two different things and reciprocal rank fusion treats them
 # as interchangeable, which they are not. `symbol` chunks are the API itself —
 # a name you can call. `doc_section` chunks are prose *about* eTamil. For "how
@@ -317,6 +321,7 @@ def search(
     *,
     limit: int = 8,
     kinds: tuple[str, ...] | None = None,
+    expand: bool = False,
 ) -> list[Hit]:
     """Lexical and semantic retrieval, fused.
 
@@ -325,17 +330,40 @@ def search(
     refused to run there would make paRY undevelopable on the machine that
     builds its corpus.
     """
+    # Both retrievers need the question and the document to share words, and
+    # a question asked in ordinary English often shares none with a library
+    # written in Tamil. `expand` asks the local model for the domain terms and
+    # searches for those as well as the original — never instead of it, so an
+    # expansion that goes wrong can only add noise, not remove the right hit.
     lexical = lexical_search(connection, question, limit=FUSION_DEPTH, kinds=kinds)
     semantic = semantic_search(connection, question, limit=FUSION_DEPTH, kinds=kinds)
-    if not semantic:
+
+    # Expansion is a *second opinion*, not a rewrite. Appending the model's
+    # terms to the question was tried and scored worse than not expanding at
+    # all — the added words dilute the original in the embedding and pull
+    # long prose up the lexical list. Searching the expansion separately and
+    # fusing the two leaves the original's own ranking intact.
+    extra: list[list[Hit]] = []
+    if expand:
+        from ..answer import model
+
+        terms = model.expand_query(question)
+        if terms:
+            extra.append(lexical_search(connection, terms, limit=FUSION_DEPTH, kinds=kinds))
+            found = semantic_search(connection, terms, limit=FUSION_DEPTH, kinds=kinds)
+            if found:
+                extra.append(found)
+
+    if not semantic and not extra:
         return lexical[:limit]
 
     ranked: dict[tuple[str, str], tuple[float, Hit]] = {}
-    for hits in (lexical, semantic):
+    lists = [(1.0, lexical), (1.0, semantic)] + [(EXPANSION_TRUST, e) for e in extra]
+    for list_weight, hits in lists:
         for position, hit in enumerate(hits):
             key = (hit.title, hit.path or "")
             weight = KIND_WEIGHT.get(hit.kind, DEFAULT_KIND_WEIGHT)
-            contribution = weight / (RRF_K + position + 1)
+            contribution = list_weight * weight / (RRF_K + position + 1)
             if key in ranked:
                 previous, kept = ranked[key]
                 # Keep whichever copy carries the lexical score, so the
