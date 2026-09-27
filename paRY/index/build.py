@@ -161,11 +161,39 @@ def _symbol_chunks() -> list[dict]:
                 "names": " ".join(entry["forms"]),
                 "path": entry["module"],
                 "line": entry["line"],
+                # The whole comment block, not only the summary line. A
+                # function's entire English footprint here was one sentence
+                # while a documentation section got paragraphs, and 1,104 of
+                # those outweighed 976 symbols in every contest for a question
+                # asked in English. The rationale under a summary is also what
+                # tells neighbours apart: மாத_இறுதி and மாத_முதல் have nearly
+                # the same summary and quite different reasons to exist.
+                #
+                # `detail` falls back to `doc` for an index built against an
+                # eTamil that predates it.
                 "body": (
-                    f"{entry['doc']}\nDefined in {entry['module']}. "
+                    f"{entry.get('detail') or entry['doc']}\n"
+                    f"Defined in {entry['module']}. "
                     f"Call it as {entry['name']}({params}). "
                     f'Import with இறக்கு "{entry["module"]}";'
                 ),
+                # Both retrievers get the same text, and that is deliberate.
+                #
+                # bm25 and the embedder do want opposite things — bm25 divides
+                # by document length, so the longer body cost it (held-out
+                # recall@1 1 -> 0), while the embedder gained from four times
+                # the context (0.149 -> 0.213). Giving each its own view was
+                # tried: a terse summary indexed for full text, the whole block
+                # embedded. Both halves then behaved exactly as intended, and
+                # the *fusion* of them scored 0.182, worse than either uniform
+                # choice.
+                #
+                # Reciprocal rank fusion rewards agreement. Two retrievers
+                # reading the same text agree often, and their agreement is
+                # what lifts a chunk above the noise; reading different texts
+                # they disagree, the vote splits, and a compromise nobody
+                # ranked first comes top. Which is what happened: fused
+                # recall@1 fell to 1 of 20.
                 "extra": {"module": entry["module"], "params": entry["params"]},
             }
         )
