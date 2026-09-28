@@ -33,6 +33,23 @@ from .. import config
 # usually about; prose that mentions it is the fallback.
 WEIGHTS = (12.0, 3.0, 1.0)
 
+#: Words too common to carry meaning. The same list as
+#: nUlakam/nuNNaRivu/coRpiri.qmz, and the two are meant to agree: the
+#: tokenizers disagreeing made a different pass of the query cascade fire on
+#: each side for the same question, which looked like a ranking difference and
+#: was not one.
+#:
+#: Deliberately short, and deliberately not question words. "how do I" is noise
+#: in a document but is most of what distinguishes one question from another.
+#: Over paRY.eval.lookup this list moved recall@3 from 11 to 12, recall@10 from
+#: 14 to 15 and MRR from 0.489 to 0.510; adding question words on top was a
+#: wash, one better at rank 1 and one worse at rank 10.
+STOP_WORDS = frozenset({
+    "a", "an", "the", "of", "to", "in", "on", "at", "for",
+    "is", "are", "was", "were", "be", "and", "or",
+    "this", "that", "it", "its", "as", "by", "with",
+})
+
 # Kinds that may be quoted back as working eTamil, best first.
 # A recipe first: it was written to answer a question, and it compiles.
 CODE_KINDS = ("recipe", "example", "doc_block")
@@ -90,7 +107,8 @@ def terms(question: str) -> list[str]:
     if current:
         words.append("".join(current))
     # Single ASCII letters carry nothing; a single Tamil letter can be a word.
-    return [word for word in words if len(word) > 1 or not word.isascii()]
+    kept = [word for word in words if len(word) > 1 or not word.isascii()]
+    return [word for word in kept if word.lower() not in STOP_WORDS]
 
 
 def _quoted(word: str) -> str:
