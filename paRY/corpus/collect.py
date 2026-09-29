@@ -46,6 +46,20 @@ EXCLUDED_DIRS = {
     "_site_preview",
     "_site",
     "__pycache__",
+    # nUlakam/*/uqavi holds a worked example per library function -- 900-odd
+    # short programs, excellent documentation for a person and poor material
+    # for a machine. Measured twice and left out on both counts:
+    #
+    #   indexed as chunks, they outnumbered the symbols they explain and a
+    #   question matched the example instead of the function. Diagnostic MRR
+    #   0.510 -> 0.352.
+    #
+    #   trained on, their repetition bought merges that do not generalise and
+    #   the documentation paid for it. chars/token 3.54 -> 3.43 on prose.
+    #
+    # Left out here rather than filtered downstream, so the corpus manifest
+    # says what was actually collected.
+    "uqavi",
 }
 
 FENCE = re.compile(r"^(?P<indent>[ \t]*)```(?P<lang>[A-Za-z0-9_+-]*)\s*$")
