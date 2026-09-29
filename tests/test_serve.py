@@ -24,8 +24,13 @@ def test_health_names_the_compiler_grading_the_answers(client):
     body = client.get("/health").json()
     assert body["compiler"].startswith("etamil")
     assert body["chunks"] > 1_000
-    # Stated, not omitted: there is no model behind this yet.
-    assert body["model"] is None
+    # Named when one is reachable, None when not -- and None is a real answer
+    # rather than a silence: it says every reply came from the compiler and the
+    # corpus alone. Asserted as a relationship because whether a model is
+    # running is not something this test should decide.
+    from paRY.answer import model as answer_model
+
+    assert body["model"] == (answer_model.current() if answer_model.available() else None)
 
 
 @needs_index

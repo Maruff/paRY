@@ -41,7 +41,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from .. import __version__, config
-from ..answer import engine
+from ..answer import engine, model as answer_model
 from ..index import search
 from ..verify import oracle
 
@@ -113,12 +113,37 @@ class CompleteRequest(BaseModel):
     path: str | None = None
 
 
+class Models(BaseModel):
+    """What can answer, and what is answering."""
+
+    current: str
+    available: list[str]
+    endpoint: str
+    keyed: bool
+    reachable: bool
+
+
+class ChooseModel(BaseModel):
+    name: str
+
+
 class Health(BaseModel):
     version: str
     compiler: str | None
     index: str | None
     chunks: int | None
     model: str | None
+
+
+def _models(available: list[str]) -> Models:
+    """The model picture, built the same way wherever it is asked for."""
+    return Models(
+        current=answer_model.current(),
+        available=available,
+        endpoint=answer_model.endpoint(),
+        keyed=bool(answer_model.MODEL_KEY),
+        reachable=answer_model.available(),
+    )
 
 
 @lru_cache(maxsize=1)
@@ -164,10 +189,38 @@ def create_app(*, origins: tuple[str, ...] = ("http://localhost:5173",)) -> Fast
             compiler=compiler_version(),
             index=str(index_path) if index_path.exists() else None,
             chunks=chunks,
-            # Stated rather than omitted: there is no model yet, and every
-            # answer today comes from the compiler and the corpus.
-            model=None,
+            # The model that would answer, when one is reachable. None says
+            # there is none, which is a real answer rather than a silence:
+            # every reply then comes from the compiler and the corpus alone.
+            model=answer_model.current() if answer_model.available() else None,
         )
+
+    @app.get("/models", response_model=Models)
+    def models() -> Models:
+        """What this endpoint serves, so an editor can offer a choice.
+
+        `available` holds only models that can answer. The endpoint serves
+        embedders too -- paRY uses one for the index -- and choosing one of
+        those is choosing a failure that surfaces later, somewhere else.
+        """
+        return _models(answer_model.catalogue())
+
+    @app.post("/models", response_model=Models)
+    def choose_model(request: ChooseModel) -> Models:
+        """Answer with a different model from the next question onward.
+
+        A name this endpoint does not serve is refused here rather than
+        accepted and discovered at the next question, by which time the editor
+        has moved on and the failure looks like it came from nowhere.
+        """
+        offered = answer_model.catalogue()
+        if offered and request.name not in offered:
+            raise HTTPException(
+                status_code=404,
+                detail=f"{request.name} is not served here; {', '.join(offered)} are",
+            )
+        answer_model.choose(request.name)
+        return _models(offered)
 
     @app.post("/ask", response_model=AnswerModel)
     def ask(request: AskRequest) -> AnswerModel:

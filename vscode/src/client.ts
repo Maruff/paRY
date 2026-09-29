@@ -51,6 +51,21 @@ export interface Health {
   model: string | null;
 }
 
+/** What the server can answer with, and what it is answering with now. */
+export interface Models {
+  current: string;
+  /**
+   * Only models that can answer. The server leaves embedders out: it serves
+   * one itself, for the index, and choosing it would fail at the next
+   * question rather than here.
+   */
+  available: string[];
+  endpoint: string;
+  /** Whether the endpoint is being sent a key. The local default needs none. */
+  keyed: boolean;
+  reachable: boolean;
+}
+
 /** A refusal the caller is expected to handle rather than report as a fault. */
 export class NotImplemented extends Error {}
 
@@ -78,6 +93,15 @@ export class ParyClient {
       source: source ?? null,
       locale: this.locale ?? null,
     });
+  }
+
+  async models(): Promise<Models> {
+    return this.request<Models>("GET", "/models");
+  }
+
+  /** Answer with a different model from the next question onward. */
+  async chooseModel(name: string): Promise<Models> {
+    return this.request<Models>("POST", "/models", { name });
   }
 
   async diagnose(source: string): Promise<DiagnoseResult> {

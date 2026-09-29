@@ -102,6 +102,51 @@ export function activate(context: vscode.ExtensionContext): void {
 
     vscode.commands.registerCommand("pary.extensions", showExtensions),
 
+    vscode.commands.registerCommand("pary.chooseModel", async () => {
+      let models;
+      try {
+        models = await client.models();
+      } catch (cause) {
+        void vscode.window.showErrorMessage(String(cause));
+        return;
+      }
+
+      // An endpoint that is not answering has nothing to offer, and a picker
+      // holding one disabled row is a worse way to say so than saying so.
+      if (models.available.length === 0) {
+        void vscode.window.showWarningMessage(
+          `No model to choose from at ${models.endpoint}. ` +
+            `paRY answers from the compiler and the corpus without one.`,
+        );
+        return;
+      }
+
+      // Built by branch rather than with an undefined `description`: under
+      // `exactOptionalPropertyTypes` a property that is explicitly undefined is
+      // not the same as an absent one, and QuickPickItem will not take it.
+      const items = models.available.map((name) =>
+        name === models.current ? { label: name, description: "in use" } : { label: name },
+      );
+      const picked = await vscode.window.showQuickPick(
+        items,
+        {
+          title: "paRY: which model should answer?",
+          placeHolder: `${models.endpoint}${models.keyed ? " (with a key)" : ""}`,
+        },
+      );
+      if (!picked || picked.label === models.current) {
+        return;
+      }
+
+      try {
+        const chosen = await client.chooseModel(picked.label);
+        void vscode.window.showInformationMessage(`paRY answers with ${chosen.current}`);
+      } catch (cause) {
+        void vscode.window.showErrorMessage(String(cause));
+      }
+      await refreshStatus(client, status);
+    }),
+
     vscode.commands.registerCommand("pary.checkServer", async () => {
       try {
         const health = await client.health();

@@ -69,6 +69,11 @@
         "command": "pary.extensions",
         "title": "eTamil: Languages you can turn on",
         "icon": "$(extensions)"
+      },
+      {
+        "command": "pary.chooseModel",
+        "title": "paRY: Choose the model that answers",
+        "category": "paRY"
       }
     ],
     "menus": {

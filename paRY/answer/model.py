@@ -38,6 +38,96 @@ import urllib.request
 MODEL_URL = os.environ.get("PARY_MODEL_URL", "http://127.0.0.1:11434")
 MODEL_NAME = os.environ.get("PARY_MODEL", "granite3.3:2b")
 
+#: A key, when the endpoint is one that wants it.
+#:
+#: The default needs none and never will: it is Ollama on this machine, open
+#: weights on hardware the project controls, and that is the point rather than
+#: a stage on the way to something else. A key here is the user's own, for
+#: their own endpoint, and paRY works fully without one.
+MODEL_KEY = os.environ.get("PARY_MODEL_KEY", "")
+
+#: What is in use now, which the environment only seeds.
+#:
+#: Mutable because the point is choosing: the editor asks for a different
+#: model and the next answer uses it, rather than the server being restarted
+#: with a different environment. One process serving one developer, so a
+#: module-level choice is the whole of the state it needs -- if paRY ever
+#: serves several people this has to become per-request instead.
+_chosen: dict[str, str] = {"name": MODEL_NAME, "url": MODEL_URL, "key": MODEL_KEY}
+
+
+def current() -> str:
+    """The model answering questions right now."""
+    return _chosen["name"]
+
+
+def endpoint() -> str:
+    """Where it is served from."""
+    return _chosen["url"]
+
+
+def choose(name: str, *, url: str | None = None, key: str | None = None) -> str:
+    """Answer with a different model from the next question onward."""
+    _chosen["name"] = name
+    if url is not None:
+        _chosen["url"] = url
+    if key is not None:
+        _chosen["key"] = key
+    return _chosen["name"]
+
+
+def catalogue() -> list[str]:
+    """Every model the endpoint serves that can answer a question.
+
+    The endpoint serves embedders too -- paRY uses one itself, for the index --
+    and an embedder cannot answer anything. Offering one in a chooser is
+    offering a choice that fails later and elsewhere, so they are filtered out
+    here rather than explained afterwards.
+
+    Ollama says which is which: /api/show reports capabilities, ['completion']
+    against ['embedding']. An endpoint that will not answer /api/show is not
+    assumed to be hiding embedders -- its models are all offered, because a
+    chooser that lists nothing is worse than one that lists too much.
+
+    Nothing at all is not an error either: an endpoint with no /api/tags is
+    still usable, it just cannot offer a list.
+    """
+    try:
+        request = urllib.request.Request(f"{endpoint()}/api/tags", headers=_headers())
+        with urllib.request.urlopen(request, timeout=5) as response:
+            tags = json.load(response)
+    except Exception:
+        return []
+
+    names = sorted(e.get("name", "") for e in tags.get("models", []) if e.get("name"))
+    return [name for name in names if _can_answer(name)]
+
+
+def _can_answer(name: str) -> bool:
+    """Can this model complete text, or does it only embed it?"""
+    try:
+        request = urllib.request.Request(
+            f"{endpoint()}/api/show",
+            data=json.dumps({"model": name}).encode("utf-8"),
+            headers=_headers(),
+        )
+        with urllib.request.urlopen(request, timeout=5) as response:
+            shown = json.load(response)
+    except Exception:
+        # Asked and not told. Offer it: the endpoint may not be Ollama at all.
+        return True
+    capabilities = shown.get("capabilities")
+    if not capabilities:
+        return True
+    return "completion" in capabilities
+
+
+def _headers() -> dict[str, str]:
+    headers = {"Content-Type": "application/json"}
+    if _chosen["key"]:
+        headers["Authorization"] = f"Bearer {_chosen['key']}"
+    return headers
+
 #: Off unless asked for. A box that has not got the memory for a model should
 #: not discover that fact by an editor request timing out.
 ENABLED = os.environ.get("PARY_MODEL_ENABLED", "1") not in ("0", "false", "no")
@@ -88,9 +178,9 @@ Answer in English."""
 
 def _post(path: str, payload: dict, timeout: float) -> dict | None:
     request = urllib.request.Request(
-        f"{MODEL_URL}{path}",
+        f"{endpoint()}{path}",
         data=json.dumps(payload).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers=_headers(),
     )
     try:
         with urllib.request.urlopen(request, timeout=timeout) as response:
@@ -106,13 +196,15 @@ def available() -> bool:
     if not ENABLED:
         return False
     try:
-        with urllib.request.urlopen(f"{MODEL_URL}/api/tags", timeout=5) as response:
+        request = urllib.request.Request(f"{endpoint()}/api/tags", headers=_headers())
+        with urllib.request.urlopen(request, timeout=5) as response:
             tags = json.load(response)
     except Exception:
         return False
     names = {entry.get("name", "") for entry in tags.get("models", [])}
     # Ollama answers to `granite3.3:2b` whether or not the tag carries `:latest`.
-    return any(name == MODEL_NAME or name.startswith(f"{MODEL_NAME}:") for name in names)
+    chosen = current()
+    return any(name == chosen or name.startswith(f"{chosen}:") for name in names)
 
 
 def reference(hits, limit: int = REFERENCE_CHUNKS) -> str:
@@ -143,7 +235,7 @@ def compose(question: str, hits, *, repair: str | None = None, previous: str | N
     reply = _post(
         "/api/chat",
         {
-            "model": MODEL_NAME,
+            "model": current(),
             "stream": False,
             "messages": [
                 {"role": "system", "content": SYSTEM},
@@ -224,7 +316,7 @@ def expand_query(question: str) -> str | None:
         answer = _post(
             "/api/chat",
             {
-                "model": MODEL_NAME,
+                "model": current(),
                 "stream": False,
                 "messages": [
                     {"role": "system", "content": EXPAND_SYSTEM},

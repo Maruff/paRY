@@ -49,7 +49,10 @@ def test_the_index_tokenizer_keeps_a_tamil_word_whole():
 
 
 def test_terms_keep_combining_marks_attached():
-    assert search.terms("நீளம் of an array?") == ["நீளம்", "of", "an", "array"]
+    # "of" and "an" are stop words now, matching coRpiri.qmz. What this test is
+    # about survives that: நீளம் comes back whole, its combining marks still
+    # attached, rather than split into நீ + ள + ம.
+    assert search.terms("நீளம் of an array?") == ["நீளம்", "array"]
 
 
 def test_a_lone_ascii_letter_is_not_a_term():
