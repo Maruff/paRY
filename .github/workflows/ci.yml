@@ -1,0 +1,123 @@
+# Rebuild everything paRY derives from eTamil, then run the tests that depend
+# on it.
+#
+# The index, the tokenizer and the completion cases are generated artifacts
+# under data/, which is gitignored. Nothing carries them, nothing compares
+# them against the language they were built from, and every test that needs
+# one skips when it is absent. So they drifted, quietly, for as long as nobody
+# rebuilt them by hand:
+#
+#   the index was built on 27 September and still quoted examples importing
+#   "../../nUlakam/paNam.qmz" after the file had moved to paNam/paNam.qmz --
+#   paRY was handing people code with dead import paths, carrying a compiles
+#   verdict that had been true when it was computed
+#
+#   the tokenizer was trained on 26 September, before nUlakam reached 939
+#   functions, so 332 names split into several tokens each -- and a keyword
+#   that costs four tokens is four chances to invent a keyword
+#
+#   the completion cases were built on 26 August against the old flat paths,
+#   so the leave-one-out exclusion stopped matching and the answer file came
+#   back into scope
+#
+# There is nothing committed to diff against, so this does the honest version:
+# builds them fresh from whatever eTamil is today and asserts the invariants
+# still hold. That is what the skipped tests already say -- they simply never
+# ran.
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  # eTamil moves without paRY moving, so time alone breaks this.
+  schedule:
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+jobs:
+  artifacts:
+    name: rebuild the artifacts and test against them
+    runs-on: ubuntu-latest
+
+    steps:
+      # paRY resolves eTamil as ../eTamil and the site as ../eTamil_site, so
+      # the three sit side by side exactly as they do on a developer's disk.
+      - name: Check out paRY
+        uses: actions/checkout@v4
+        with:
+          path: paRY
+
+      - name: Check out the compiler
+        uses: actions/checkout@v4
+        with:
+          repository: Maruff/eTamil_lang
+          path: eTamil
+
+      - name: Check out the site
+        uses: actions/checkout@v4
+        with:
+          repository: Maruff/eTamil.in
+          path: eTamil_site
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: eTamil/etamil_compiler
+
+      # Every generated sample is checked by running this, so a missing binary
+      # is a reason to stop rather than to guess.
+      - name: Build the compiler
+        working-directory: eTamil/etamil_compiler
+        run: cargo build --release
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install paRY
+        working-directory: paRY
+        run: pip install -e ".[dev]"
+
+      - name: Collect the corpus
+        working-directory: paRY
+        run: python -m paRY.corpus.collect
+
+      - name: Build the index
+        working-directory: paRY
+        run: python -m paRY.index.build
+
+      - name: Train the tokenizer
+        working-directory: paRY
+        run: python -m paRY.tokenizer.train
+
+      - name: Build the completion cases
+        working-directory: paRY
+        run: python -m paRY.eval.cases
+
+      # No model here, and that is deliberate: the answer path is required to
+      # work without one, and every reply then comes from the compiler and the
+      # corpus. The tests that need a model skip; the rule they guard -- that
+      # no answer carries code which does not compile -- does not.
+      # Run once, and read the skips back. A test that skips because its
+      # artifact is missing is the failure this whole job exists to prevent,
+      # and a skip is silent in a green run -- every one of these tests was
+      # skipping locally while the artifacts rotted.
+      #
+      # The five reasons are the ones the suite actually uses: four say to run
+      # a paRY build step, one says the compiler is not built. All five mean a
+      # step above did not produce what the test was looking for.
+      - name: Test, with nothing allowed to skip for a missing artifact
+        working-directory: paRY
+        run: |
+          set -o pipefail
+          pytest -q -rs 2>&1 | tee pytest.out
+          if grep -qE "SKIPPED.*(run python -m paRY|eTamil compiler is not built)" pytest.out; then
+            echo "::error::a test skipped because an artifact was missing - the rebuild above did not produce it"
+            grep -E "SKIPPED" pytest.out
+            exit 1
+          fi
+          echo "no test skipped for a missing artifact"
