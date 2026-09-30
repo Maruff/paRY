@@ -5,7 +5,7 @@ overridden by an environment variable so a training box can lay them out
 differently:
 
     ETAMIL_ROOT        the compiler repository        (default ../eTamil)
-    ETAMIL_SITE_ROOT   the site and IDE repository    (default ../eTamil_site)
+    ETAMIL_SITE_ROOT   the site and IDE repository    (default ../eTamil.in)
     ETAMIL_BIN         the compiler binary            (default: the release
                        build inside ETAMIL_ROOT, then the packaged one)
     PARY_DATA          generated corpora and models   (default ./data)
@@ -26,7 +26,7 @@ def _env_path(name: str, default: Path) -> Path:
 
 
 ETAMIL_ROOT = _env_path("ETAMIL_ROOT", (REPO_ROOT.parent / "eTamil").resolve())
-ETAMIL_SITE_ROOT = _env_path("ETAMIL_SITE_ROOT", (REPO_ROOT.parent / "eTamil_site").resolve())
+ETAMIL_SITE_ROOT = _env_path("ETAMIL_SITE_ROOT", (REPO_ROOT.parent / "eTamil.in").resolve())
 DATA_DIR = _env_path("PARY_DATA", REPO_ROOT / "data")
 
 CORPUS_DIR = DATA_DIR / "corpus"
